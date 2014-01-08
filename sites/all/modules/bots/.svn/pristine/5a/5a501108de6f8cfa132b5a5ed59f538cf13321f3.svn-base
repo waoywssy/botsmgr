@@ -1,0 +1,18 @@
+DROP TABLE IF EXISTS `checklist_chc`;
+DROP TABLE IF EXISTS `bot_runs_btrns`;
+DROP TABLE IF EXISTS `web_statistic_wbs`;
+
+DROP TABLE IF EXISTS `qa_statistic_qst`;
+DROP TABLE IF EXISTS `city_cty`;
+DROP TABLE IF EXISTS `jobs_jbs`;
+DROP TABLE IF EXISTS `keywords_jobs_kwdjbs`;
+DROP TABLE IF EXISTS `keywords_pairs_kp`;
+DROP TABLE IF EXISTS `keywords_kwd`;
+DROP TABLE IF EXISTS `locations_lct`;
+DROP TABLE IF EXISTS `sites_st`;
+DROP TABLE IF EXISTS `state_stt`;
+DROP TABLE IF EXISTS `users_keywords_usrkwd`;
+DROP TABLE IF EXISTS `users_locations_usrlct`;
+DROP TABLE IF EXISTS `locations_radius_lr`;
+DROP TABLE IF EXISTS `keywords_location_kwdlct`;
+DROP TABLE IF EXISTS `user_email_usrml`;

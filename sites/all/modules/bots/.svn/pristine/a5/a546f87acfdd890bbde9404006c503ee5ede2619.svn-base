@@ -1,0 +1,51 @@
+package com.boryi.bots.usjobs.monster;
+
+import java.util.ArrayList;
+
+import org.apache.http.Header;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.protocol.HTTP;
+
+import com.boryi.bots.base.BotHttpHeaderEntity;
+import com.boryi.bots.base.BotConfig;
+
+/**
+ * Entity class bundles http headers to simulate a browser activities
+ * 
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ * 
+ * @author Gang Huang, Ph.D.
+ * @version 1.0
+ * @since August 2009
+ */
+public class MonsterHttpHeaderEntity extends BotHttpHeaderEntity
+{
+    /**
+     * Default Constructor
+     */
+    public MonsterHttpHeaderEntity()
+    {
+    }
+    
+    
+    @Override
+    public Header[] getHeaders()
+    {
+        ArrayList<Header> headers = new ArrayList<Header>();
+        headers.add(new BasicHeader(HTTP.CONTENT_TYPE, BotConfig.getInstance().getParams().get("contentType")));
+        headers.add(new BasicHeader("X-Requested-With", "XMLHttpRequest"));
+        Header[] defaultHeaders = super.getHeaders();
+        for (Header defaultHeader : defaultHeaders)
+        {
+            if (!defaultHeader.getName().equalsIgnoreCase("Host"))
+            {
+                headers.add(defaultHeader);
+            }
+        }
+        headers.add(0, new BasicHeader("Host", "www.example.com"));
+        Header[] allHeaders = new Header[headers.size()];
+        headers.toArray(allHeaders);
+        
+        return allHeaders;
+    }
+}

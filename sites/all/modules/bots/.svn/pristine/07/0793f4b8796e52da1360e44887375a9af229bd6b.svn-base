@@ -1,0 +1,11 @@
+(
+  <h2>Error[^>]*>[^<]*<address[^>]*>[^<]*<a[^>]*>\s*ws.geonames.org</a>
+)
+|
+(
+  Empty\s*server\s*or\s*forwarder\s*response
+)
+|
+(
+  Forwarding\s*failure
+)

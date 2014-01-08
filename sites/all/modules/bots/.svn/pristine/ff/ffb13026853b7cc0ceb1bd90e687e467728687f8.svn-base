@@ -1,0 +1,74 @@
+package com.boryi.bots.geoname;
+
+/**
+ * The country entity
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Yang Song
+ * @version 1.0
+ * @since September 2009
+ */
+public class GeoNameCountryEntity {
+    private String geonameid;
+    private String name;
+    private String code;
+    private String url;
+
+
+    /**
+     * Constructor
+     * 
+     * @param geonameid GeonameId from the site
+     * @param name      Name of the country like 'United States'
+     * @param code      Code of the country like 'US'
+     * @param url       Used as url path, like 'USA'
+     */
+    public GeoNameCountryEntity(String geonameid, String name, String code, String url)
+    {
+        this.geonameid = geonameid;
+        this.name = name;
+        this.code = code;
+        this.url = url;
+    }
+
+
+    /**
+     * Constructor
+     */
+    public GeoNameCountryEntity()
+    {
+    }
+
+    /**
+     * @return the geonameid
+     */
+    public String getGeonameid()
+    {
+        return geonameid;
+    }
+
+    /**
+     * @return the name
+     */
+    public String getName()
+    {
+        return name;
+    }
+
+    /**
+     * @return the code
+     */
+    public String getCode()
+    {
+        return code;
+    }
+
+    /**
+     * @return the url
+     */
+    public String getUrl()
+    {
+        return url;
+    }
+}

@@ -1,0 +1,5 @@
+.jobIcon{
+	cursor:pointer;
+	padding:4px 4px 0 0;
+	}
+.disabled{display:none;}

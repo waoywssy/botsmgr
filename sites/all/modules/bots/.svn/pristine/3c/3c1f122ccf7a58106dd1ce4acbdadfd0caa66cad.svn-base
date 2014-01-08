@@ -1,0 +1,217 @@
+package com.boryi.bots.hnrcsc;
+
+/**
+ * The location entity
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Yang Song
+ * @version 1.0
+ * @since September 2009
+ */
+public class HnrcscJobEntity {
+
+    private int id;// id from the site
+    private String name;
+    private String count;
+    private String apartment;
+    private String date;//date when to start hire
+    private String until;// date when will end hire
+    private String type;
+    private String education;
+    private String location;
+    private String salary;
+    private String salaryDetail;
+    private String phone;
+    private String email;
+    private String contactor;
+    private String description;
+    private String requirement;
+    private String applyerType;
+
+    /**
+     * Constructor
+     */
+    public HnrcscJobEntity()
+    {}
+
+    /**
+     * Constructor
+     *
+     * @param name          the name of the job
+     * @param count         how many employee the job needs
+     * @param apartment     which apartment is the job of
+     * @param date          from when to start hiring
+     * @param until         untill when to end hiring
+     * @param type          the type of the job
+     * @param education     the education requirement
+     * @param location      the place to work at
+     * @param salary        the salary
+     * @param salaryDetail  details of the salary
+     * @param phone         contactor phone number
+     * @param email         contactor email address
+     * @param contactor     contactor name(s)
+     * @param description   description of the job
+     * @param requirement   requirement of the job
+     */
+    public HnrcscJobEntity(int id, String name, String count, String apartment,
+            String date, String until, String type, String education, String location,
+            String salary, String salaryDetail, String phone, String email,
+            String contactor, String description, String requirement, String applyerType)
+    {
+        this.id = id;
+        this.name = name;
+        this.count = count;
+        this.apartment = apartment;
+        this.date = date;
+        this.until = until;
+        this.type = type;
+        this.education = education;
+        this.location = location;
+        this.salary = salary;
+        this.salaryDetail = salaryDetail;
+        this.phone = phone;
+        this.email = email;
+        this.contactor = contactor;
+        this.description = description;
+        this.requirement = requirement;
+        this.applyerType = applyerType;
+    }
+
+    /**
+     * @return the id
+     */
+    public int getId()
+    {
+        return id;
+    }
+
+    /**
+     * @return the name
+     */
+    public String getName()
+    {
+        return name;
+    }
+
+    /**
+     * @return the count
+     */
+    public String getCount()
+    {
+        return count;
+    }
+
+    /**
+     * @return the apartment
+     */
+    public String getApartment()
+    {
+        return apartment;
+    }
+
+    /**
+     * @return the date
+     */
+    public String getDate()
+    {
+        return date;
+    }
+
+    /**
+     * @return the until
+     */
+    public String getUntil()
+    {
+        return until;
+    }
+
+    /**
+     * @return the type
+     */
+    public String getType()
+    {
+        return type;
+    }
+
+    /**
+     * @return the education
+     */
+    public String getEducation()
+    {
+        return education;
+    }
+
+    /**
+     * @return the location
+     */
+    public String getLocation()
+    {
+        return location;
+    }
+
+    /**
+     * @return the salary
+     */
+    public String getSalary()
+    {
+        return salary;
+    }
+
+    /**
+     * @return the salaryDetail
+     */
+    public String getSalaryDetail()
+    {
+        return salaryDetail;
+    }
+
+    /**
+     * @return the phone
+     */
+    public String getPhone()
+    {
+        return phone;
+    }
+
+    /**
+     * @return the email
+     */
+    public String getEmail()
+    {
+        return email;
+    }
+
+    /**
+     * @return the contactor
+     */
+    public String getContactor()
+    {
+        return contactor;
+    }
+
+    /**
+     * @return the description
+     */
+    public String getDescription()
+    {
+        return description;
+    }
+
+    /**
+     * @return the requirement
+     */
+    public String getRequirement()
+    {
+        return requirement;
+    }
+
+    /**
+     * @return the applyerType
+     */
+    public String getApplyerType()
+    {
+        return applyerType;
+    }
+
+}

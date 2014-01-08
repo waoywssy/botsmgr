@@ -1,0 +1,537 @@
+package com.boryi.bots.geoname;
+
+import com.boryi.bots.base.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.StringReader;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.xml.sax.*;
+import org.w3c.dom.*;
+import javax.xml.parsers.*;
+
+/**
+ * Thread containing fields and methods to parse and save data from geoname
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Yang Song
+ * @version 1.0
+ * @since September 2009
+ */
+public class GeoNameWebThread extends BotWebThread
+{
+    /**
+     * The web service url part to retrieve locations' pages
+     */
+    private String wsChildrenUrl;
+    /**
+     * Arraylist to hold countries
+     */
+    private ArrayList<GeoNameCountryEntity> countries;
+    /**
+     * Arraylist to hold locations
+     */
+    private ArrayList<GeoNameRegionEntity> regions;
+    /**
+     * Country id for the current location
+     */
+    private int currentCountryId;
+    /**
+     * Maximum retry times if the site refuse to work.
+     */
+    private int maxRetries;
+
+
+    /**
+     * Constructor
+     */
+    public GeoNameWebThread()
+    {
+        checklist = new ArrayList<BotChecklistEntity>();
+        countries = new ArrayList<GeoNameCountryEntity>();
+        regions = new ArrayList<GeoNameRegionEntity>();
+
+        // set default language
+        String language = "en";
+        if(BotConfig.getInstance().getParams().containsKey("language"))
+        {
+            language = BotConfig.getInstance().getParams().get("language");
+        }
+
+        maxRetries = 5;
+        if(BotConfig.getInstance().getParams().containsKey("noServiceMaxRetry"))
+        {
+            try
+            {
+                maxRetries = Integer.parseInt(BotConfig.getInstance().
+                        getParams().get("noServiceMaxRetry"));
+            }
+            catch(Exception ex)
+            {
+                maxRetries = 5;
+            }
+        }
+
+        wsChildrenUrl = "http://ws.geonames.org/children";
+        if(BotConfig.getInstance().getParams().containsKey("webChildrenUrl"))
+        {
+            wsChildrenUrl = BotConfig.getInstance().getParams().get("webChildrenUrl");
+        }
+        wsChildrenUrl += "?style=full&lang=" + language +"&geonameId=";
+    }
+
+
+    @Override
+    public void getWebData() throws InterruptedException, Exception
+    {
+        boolean needsRetry = false;
+        int retry = 0;
+        do
+        {
+            // get remote page source string
+            super.getWebData();
+
+            boolean needsVarify = false;
+            String regexNameVerify = "varify";
+            String regexName = null;
+
+            // get regex file names for the current stage
+            ArrayList al = BotConfig.getInstance().getRegexStages().get(item.getStage());
+            for (int i = 0; i < al.size(); i++)
+            {
+                // if any regex file used to varify site exists
+                if (al.get(i).toString().startsWith(regexNameVerify))
+                {
+                    needsVarify = true;
+                    for (String key : BotConfig.getInstance().getRegexes().keySet())
+                    {
+                        if (BotConfig.getInstance().getRegexes().get(key).equals(al.get(i).toString()))
+                        {
+                            // got the key for the regex file name to load the regex content string
+                            regexName = key;
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+
+            if (needsVarify)
+            {
+                Pattern pattern = BotConfig.getInstance().getPatterns().get(regexName);
+                Matcher matcher = pattern.matcher(webData);
+                if (matcher.find())
+                {
+                   // here means that the page has a 502 or 503 error from 
+                   //  ws.geonames.org or other eithers like proxy errors
+                   needsRetry = true;
+                   GeoNameDao.getInstance().saveEvent(new BotEventEntity(
+                                    BotEventSeverity.WARNING,
+                                    "Remote Server Error",
+                                    "Checklist id: " + item.getId() + "; Retry times: " + retry,
+                                    System.currentTimeMillis()));
+
+                    Thread.sleep(sleepingTime.getSleepingTime(retry));
+                    retry++;
+                }
+            }
+        } while(needsRetry && retry < maxRetries);
+    }
+    
+    @Override
+    public void parseWebData()
+    {
+        // stage 0 for country, 1 for location
+        if (item.getStage() == 0)
+        {
+            parseCountries(webData);
+        }
+        else
+        {
+            currentCountryId = item.getId();
+            parseLocations(webData);
+        }
+    }
+
+
+    @Override
+    public void saveData()
+    {
+        // stage 0 for country, 1 for location
+        if (item.getStage() == 0)
+        {
+            saveCountries();
+        }
+        else
+        {
+            saveLocations();
+        }
+    }
+
+
+    /***
+     * Parse and save country information
+     *
+     * @param countryXml xml string from the web servide from geonames.org
+     */
+    private void parseCountries(String countryXml)
+    {
+        Document dom = getXMLDom(countryXml);
+        
+        if (dom != null)
+        {
+            NodeList nlCountries = dom.getElementsByTagName(
+                    BotConfig.getInstance().getParams().get("geoname_tag_country"));
+            int len = nlCountries.getLength();
+
+            for (int i = 0; i < len; i++)
+            {
+                Element el = (Element)nlCountries.item(i);
+
+                NodeList code = el.getElementsByTagName(
+                        BotConfig.getInstance().getParams().get("geoname_tag_country_code"));
+                NodeList name = el.getElementsByTagName(
+                        BotConfig.getInstance().getParams().get("geoname_tag_country_name"));
+                NodeList url = el.getElementsByTagName(
+                        BotConfig.getInstance().getParams().get("geoname_tag_country_url"));
+                NodeList id = el.getElementsByTagName(
+                        BotConfig.getInstance().getParams().get("geoname_tag_country_id"));
+
+                GeoNameCountryEntity gnc = new GeoNameCountryEntity(
+                        id.item(0).getTextContent(),
+                        name.item(0).getTextContent(),
+                        url.item(0).getTextContent(),
+                        code.item(0).getTextContent());
+
+                // add to country list
+                countries.add(gnc);
+            }
+        }
+    }
+
+
+    /**
+     * Save countries into database
+     */
+    private void saveCountries()
+    {
+        int count = countries.size();
+        GeoNameCountryEntity country = null;
+        BotChecklistEntity bce = null;
+
+        if (checklist==null)
+        {
+            checklist = new ArrayList<BotChecklistEntity>(count);
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            country = countries.get(i);
+            try
+            {
+                ((GeoNameDao) GeoNameDao.getInstance()).saveCountry(
+                        country.getGeonameid(),
+                        country.getName(),
+                        country.getCode(),
+                        country.getUrl());
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    BotDao.getInstance().saveEvent(
+                        new BotEventEntity(BotEventSeverity.ERROR,
+                        "Error saving country",
+                        "Failed to save country: " + country.getGeonameid() +
+                        "; " + ex.toString(),
+                        System.currentTimeMillis()));
+                }
+                catch (Exception exc)
+                {
+                    BotBase.logger.error("Saving country failed - "
+                         + country.getGeonameid() + "; "
+                         + ex.toString() + exc.toString());
+                }
+                continue;
+            }
+
+            bce = new BotChecklistEntity(
+                    URI.create(wsChildrenUrl + country.getGeonameid()),
+                    1,
+                    Integer.valueOf(country.getGeonameid()),
+                    item.getLevel() + 1);
+            checklist.add(bce);
+        }
+        countries = new ArrayList<GeoNameCountryEntity>();
+    }
+
+
+    /**
+     * Save location data into database
+     */
+    private void saveLocations()
+    {
+        int count = regions.size();
+        GeoNameRegionEntity region = null;
+        BotChecklistEntity bce = null;
+
+        checklist = new ArrayList<BotChecklistEntity>(count);
+
+        for (int i = 0; i < count; i++)
+        {
+            region = regions.get(i);
+            try
+            {
+                ((GeoNameDao)GeoNameDao.getInstance()).saveLocation(region);
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    BotDao.getInstance().saveEvent(
+                        new BotEventEntity(BotEventSeverity.ERROR,
+                        "Error saving location",
+                        "Failed to save location: " + region.getGeonameId() +
+                        "; " + ex.toString(),
+                        System.currentTimeMillis()));
+                }
+                catch (Exception exc)
+                {
+                    BotBase.logger.error("Saving country failed - "
+                         + region.getGeonameId() + "; "
+                         + ex.toString() + exc.toString());
+                }
+                continue;
+            }
+
+            bce = new BotChecklistEntity(
+                        URI.create(wsChildrenUrl + region.getGeonameId()),
+                        1,
+                        Integer.parseInt(region.getGeonameId()),
+                        item.getLevel() +1);
+            checklist.add(bce);
+        }
+        regions = new ArrayList<GeoNameRegionEntity>();
+    }
+
+
+    /**
+     * parse locations data
+     *
+     * @param webData
+     */
+    private void parseLocations(String webData)
+    {
+        try
+        {
+            Document dom = getXMLDom(webData);
+            if (dom != null)
+            {
+                NodeList total = dom.getElementsByTagName(
+                        BotConfig.getInstance().getParams().get("geoname_tag_children_counts"));
+
+                if (total != null)
+                {
+                    if (total.getLength() > 0)
+                    {
+                        int totals = Integer.parseInt(total.item(0).getTextContent());
+                        if (totals <= 0)
+                        {
+                            return;
+                        }
+                    }
+
+                    NodeList geonames = dom.getElementsByTagName(
+                            BotConfig.getInstance().getParams().get("geoname_tag_geoname"));
+                    int len = geonames.getLength();
+
+                    for (int i = 0; i < len; i++)
+                    {
+                        Element el = (Element)geonames.item(i);
+
+                        NodeList geoId = el.getElementsByTagName(
+                                BotConfig.getInstance().getParams().get("geoname_tag_id"));
+                        NodeList name = el.getElementsByTagName(
+                                BotConfig.getInstance().getParams().get("geoname_tag_name"));
+                        NodeList alternateNames = el.getElementsByTagName(
+                                BotConfig.getInstance().getParams().get("geoname_tag_alternate_names"));
+                        NodeList lat = el.getElementsByTagName(
+                                BotConfig.getInstance().getParams().get("geoname_tag_lat"));
+                        NodeList lng = el.getElementsByTagName(
+                                BotConfig.getInstance().getParams().get("geoname_tag_lng"));
+                        NodeList admincode = el.getElementsByTagName(
+                                BotConfig.getInstance().getParams().get("geoname_tag_admin_code"));
+
+                        String alternates = "";
+                        String[] names = null;
+
+                        if (alternateNames.getLength() > 0)
+                        {
+                            alternates = alternateNames.item(0).getTextContent();
+                        }
+                        if (admincode.getLength() > 0)
+                        {
+                            alternates += ","+admincode.item(0).getTextContent();
+                        }
+                        names = alternates.split(",");
+
+
+                        GeoNameRegionEntity child = new GeoNameRegionEntity(
+                                            geoId.item(0).getTextContent(),
+                                            name.item(0).getTextContent(),
+                                            lat.item(0).getTextContent(),
+                                            lng.item(0).getTextContent(),
+                                            names,
+                                            String.valueOf(item.getId()),
+                                            String.valueOf(currentCountryId),
+                                            item.getLevel());
+
+                        regions.add(child);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                BotDao.getInstance().saveEvent(
+                    new BotEventEntity(BotEventSeverity.ERROR,
+                    "Error parsing location",
+                    "Failed to parse location: " + item.getId() +
+                    "; " + ex.toString(),
+                    System.currentTimeMillis()));
+            }
+            catch (Exception exc)
+            {
+                BotBase.logger.error("Parsing location failed - "
+                     + item.getId() + "; "
+                     + ex.toString() + exc.toString());
+            }
+        }
+    }
+
+
+    /**
+     * Given xml string, get the dom object of the xml file
+     *
+     * @param xmlString
+     * @return Document
+     */
+    private Document getXMLDom(String xmlString)
+    {
+        Document dom = null;
+        try
+        {
+            boolean isPageValid = xmlString.indexOf("<geonames") > 0;
+
+            if (!isPageValid)
+            {
+                BotDao.getInstance().updateChecklistStatus(item.getId(), -1);
+                checklist = new ArrayList<BotChecklistEntity>();
+                checklist.add(item);
+                try
+                {
+                    BotDao.getInstance().saveEvent(
+                        new BotEventEntity(BotEventSeverity.WARNING,
+                        "Warnning page is not valid",
+                        "Failed to valid page: " + item.getId(),
+                        System.currentTimeMillis()));
+
+                    writeInvalidPageToFile(xmlString);
+                }
+                catch (Exception exc)
+                {
+                    BotBase.logger.error("Parsing location failed - "
+                         + item.getId() + "; ");
+                }
+                return null;
+            }
+
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            xmlString = new String(xmlString);
+
+            //Using factory get an instance of document builder
+            DocumentBuilder db = dbf.newDocumentBuilder();
+            //parse using builder to get DOM representation of the XML file
+            dom = db.parse(new InputSource(new StringReader(xmlString)));
+        }
+        catch(Exception ex)
+        {
+            try
+            {
+                BotDao.getInstance().saveEvent(
+                    new BotEventEntity(BotEventSeverity.ERROR,
+                    "Error getting xml document object",
+                    "Failed to getting xml document: " + item.getId() +
+                    "; " + ex.toString(),
+                    System.currentTimeMillis()));
+            }
+            catch (Exception exc)
+            {
+                BotBase.logger.error("Parsing location failed - "
+                     + item.getId() + "; "
+                     + ex.toString() + exc.toString());
+            }
+        }
+        return dom;
+    }
+
+
+    /**
+     * Save invalid page string to file
+     *
+     * @param page  The invalid page string
+     */
+    private void writeInvalidPageToFile(String page)
+    {
+        BufferedWriter out = null;
+
+        String dir = BotConfig.getInstance().getTempDir();
+        String filename = item.getId()  + "_"
+                        + BotRunEntity.getInstance().getBotId() + "_"
+                        + BotRunEntity.getInstance().getJobId() + "_"
+                        + BotRunEntity.getInstance().getTaskId() + "_"
+                        + BotRunEntity.getInstance().getRunId() + "_"
+                        + System.currentTimeMillis();
+        try
+        {
+            String currentDir = System.getProperty("user.dir");
+            String fullname = currentDir + "/" + dir + filename;
+            File file = new File(fullname);
+            if (!file.exists())
+            {
+                file.createNewFile();
+            }
+            out = new BufferedWriter(new FileWriter(fullname));
+                // replace hellowrold.txt with the name of the file
+            out.write(page);
+                // Write out the specfied string to the file
+            out.close();
+                // flushes and closes the stream
+        }
+        catch(IOException ex)
+        {
+            try
+            {
+                BotDao.getInstance().saveEvent(
+                    new BotEventEntity(BotEventSeverity.ERROR,
+                    "Error saving invalid page string",
+                    "Failed to save invalid page string: " + item.getId() +
+                    "; " + ex.toString(),
+                    System.currentTimeMillis()));
+            }
+            catch (Exception exc)
+            {
+                BotBase.logger.error("Saving page string failed - "
+                     + item.getId() + "; "
+                     + ex.toString() + exc.toString());
+            }
+        }
+    }
+}

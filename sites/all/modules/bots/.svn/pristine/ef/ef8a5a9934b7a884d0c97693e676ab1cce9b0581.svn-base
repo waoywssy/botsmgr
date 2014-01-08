@@ -1,0 +1,118 @@
+<?php
+function bots_install() {
+	$count = db_result(db_query("SELECT COUNT(*) FROM {role} WHERE name = '%s'", 'bots_user'));
+	if ($count == 0)
+	{
+		db_query("INSERT INTO {role}(rid, name) VALUES(null, 'bots_user')");
+	}
+	$rid = db_result(db_query("SELECT rid FROM {role} WHERE name = '%s'", 'bots_user'));
+
+	$count = db_result(db_query("SELECT COUNT(*) FROM {permission} WHERE rid = %d AND perm = '%s'", 
+			$rid, 'Access to bots data, Dump data of bots, Manually run bots, View bots information'));
+	if ($count == 0)
+	{
+		db_query("INSERT INTO {permission}(pid, rid, perm, tid) VALUES(NULL, %d, '%s', 0)", 
+			$rid, 'Access to bots data, Dump data of bots, Manually run bots, View bots information');
+	}
+}
+
+function bots_uninstall() {
+	db_query("DELETE FROM {role} WHERE name = '%s'", 'bots_user');
+	db_query("DELETE FROM {permission} WHERE perm = '%s'", 'Access to bots data, Dump data of bots, Manually run bots, View bots information');
+}
+
+function bots_perm() {
+  return array('View bots information', 'Access to bots data', 'Manually run bots', 'Dump data of bots');
+}
+
+function bots_menu() {  
+    $items['bots_view'] = array(
+        'page callback' => 'menufun_bots_view',
+		'access callback' => 'user_access',
+		'access arguments' => array('View bots information'),
+        'type' => MENU_CALLBACK,
+    );
+    $items['bots_data'] = array(
+        'page callback' => 'menufun_bots_data',
+		'access callback' => 'user_access',
+		'access arguments' => array('Access to bots data'),
+        'type' => MENU_CALLBACK,
+    );
+    $items['bots_run'] = array(
+        'page callback' => 'menufun_bots_run',
+		'access callback' => 'user_access',
+		'access arguments' => array('Manually run bots'),
+        'type' => MENU_CALLBACK,
+    );
+    $items['bots_dump'] = array(
+        'page callback' => 'menufun_bots_dump',
+		'access callback' => 'user_access',
+		'access arguments' => array('Dump data of bots'),
+        'type' => MENU_CALLBACK,
+    );
+
+    return $items;
+}
+
+function menufun_bots_view()
+{
+    drupal_add_css(drupal_get_path('module', 'jquery_ui') . '/jquery.ui/themes/redmond/jquery.ui.all.css');
+    drupal_add_css(drupal_get_path('module', 'jquery_ui') . '/jquery.ui/themes/default/ui.datepicker.css');
+    drupal_add_css(drupal_get_path('module', 'bots') . '/files/jqGrid/themes/ui.jqgrid.css');
+    drupal_add_css(drupal_get_path('module', 'bots') . '/css/bots.css');
+
+    jquery_ui_add(array('ui.core','ui.widget','ui.button','ui.mouse','ui.draggable','ui.position','ui.dialog','ui.tabs','ui.datepicker'));  				// For a single file 
+    drupal_add_js(drupal_get_path('module', 'bots') . '/files/jqGrid/js/i18n/grid.locale-en.js');
+    drupal_add_js(drupal_get_path('module', 'bots') . '/files/jqGrid/js/jquery.jqGrid.min.js');
+    drupal_add_js(drupal_get_path('module', 'bots') . '/js/jquery.validate.min.js');
+    drupal_add_js(drupal_get_path('module', 'bots') . '/js/viewbots.js');
+
+
+	return '<table id="botsList"></table><div id="botsPager"></div><br /><br />
+			<table id="jobsList"></table><div id="jobsPager"></div><br /><br />
+			<table id="tasksList"></table><div id="tasksPager"></div><br /><br />
+			<table id="runsList"></table><div id="runsPager"></div><br /><br />
+			<table id="eventsList"></table><div id="eventsPager"></div>
+			<input type="hidden" id="botid" value="">
+			<input type="hidden" id="jobid" value="">
+			<input type="hidden" id="taskid" value="">
+			<input type="hidden" id="runid" value="">
+			<div id="dialog" title="Dump job data">
+				<div id="tabs">
+					<ul>
+						<li><a href="#tabs-1">Dump Data(CSV)</a></li>
+						<li><a href="#tabs-2">Dump Schema</a></li>
+					</ul>
+					<div id="tabs-1">
+						<form id="form-dump-data" method="GET" action="">
+						<div class="disabled">
+							<p><label for="datefrom">From:</label><input type="text" id="datefrom" name="datefrom"></p>
+							<p><label for="dateto">&nbsp;To&nbsp;&nbsp;&nbsp;:</label><input type="text" id="dateto" name="dateto"></p>
+						</div>	
+						<p><input id="dgdata" value="Dump Data" /></p>
+						</form>
+					</div>
+					<div id="tabs-2">
+						<p><input id="dgschema" value="Dump Schema" /></p>						
+					</div>
+				</div>
+			</div>';
+}
+function menufun_bots_data()
+{
+	module_load_include('inc', 'bots', 'inc/bots.data');
+	echo get_data();
+	exit(0);
+}
+function menufun_bots_run()
+{
+	module_load_include('inc', 'bots', 'inc/bots.run');
+	echo get_run();
+	exit(0);
+}
+function menufun_bots_dump()
+{
+	module_load_include('inc', 'bots', 'inc/bots.dump');
+	echo get_dump();
+	exit(0);
+}

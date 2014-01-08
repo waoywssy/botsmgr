@@ -1,0 +1,5 @@
+#regex to get the max page number
+
+<select[^>]*?SelectMIPPDropDownList[^<]*
+(<option[^<]*</option[^<]*)+
+<option[^>]*?value\s*=\s*"(?<MaxPageNum>\d+)"

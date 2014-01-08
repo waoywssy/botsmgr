@@ -1,0 +1,576 @@
+package com.boryi.bots.usjobs.base;
+
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.util.EntityUtils;
+
+import com.boryi.bots.base.BotBase;
+import com.boryi.bots.base.BotWebThread;
+import com.boryi.bots.base.BotConfig;
+import com.boryi.bots.base.BotRunEntity;
+import com.boryi.bots.base.BotEventEntity;
+import com.boryi.bots.base.BotEventSeverity;
+
+/**
+ * Base thread class containing fields and methods to parse and save data 
+ * from monster.com, careerbuilder.com and so on.
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Hang Su
+ * @version 1.0
+ * @since December 2009
+ */
+public abstract class USJobsWebThreadBase extends BotWebThread
+{   
+    protected USJobsSearchCriteriaEntity searchCriteria;
+    protected int jobsPerPage;
+    protected int totalJobs;
+    protected int jobsCount = 0;
+    protected int pageJobsCount;
+    protected int listingJobsCount;
+    protected int pageJobsCaptured;
+    protected int totalPageNumber = 0;
+    protected int currentPage = 1;
+    protected int maxWebRetry;
+    protected int jobListingSummaryInfoRetry;
+    protected int jobRetry;
+    protected int verifyPageRetry;
+    protected ArrayList<USJobsJobEntity> jobs;
+    
+    /**
+     * Default constructor
+     */
+    public USJobsWebThreadBase()
+    {
+        jobs = new ArrayList<USJobsJobEntity>();
+        maxWebRetry = BotConfig.getInstance().getWebRetry().getRetry();
+        jobsPerPage = Integer.parseInt(BotConfig.getInstance().getParams().get("jobsPerPage"));
+        jobListingSummaryInfoRetry = Integer.parseInt(BotConfig.getInstance().getParams().get("jobListingSummaryInfoRetry"));
+        jobRetry = Integer.parseInt(BotConfig.getInstance().getParams().get("jobRetry"));
+        verifyPageRetry = Integer.parseInt(BotConfig.getInstance().getParams().get("verifyPageRetry"));
+    }
+    
+    
+    @Override
+    protected void prepare() throws Exception
+    {
+        super.prepare();
+        
+        cookieStore = USJobsSite.getInstance().getCookies();
+    }
+    
+    
+    @Override
+    protected void getWebData() throws InterruptedException, Exception
+    {        
+        searchCriteria = USJobsSearchCriteriaList.getInstance().getSearchCriteria(item.getId());
+        searchCriteria.setCurrentPage(currentPage);
+        searchCriteria.setJobsPerPage(jobsPerPage);
+        
+        do
+        {
+            int parseJobsRetried = 0;
+            do
+            {
+                getJobListing();
+                int summaryInfoRetried = 0;
+                while (!getJobListSummaryInfo() && ++summaryInfoRetried < jobListingSummaryInfoRetry)
+                {
+                    USJobsDao.getInstance().saveEvent(new BotEventEntity(
+                                BotEventSeverity.WARNING,
+                                "Failed to get job listing summary info",
+                                "Page: " + currentPage
+                                + "; Search criteria: " + searchCriteria
+                                + "; Checklist id: " + item.getId()
+                                + "; Retry times: " + summaryInfoRetried,
+                                System.currentTimeMillis()));
+                   
+                    getJobListing();
+                }
+                if (summaryInfoRetried >= jobListingSummaryInfoRetry)
+                {
+                    USJobsDao.getInstance().saveEvent(new BotEventEntity(
+                                BotEventSeverity.ERROR,
+                                "Failed to get job listing summary info after retries",
+                                "Page: " + currentPage
+                                + "; Search criteria: " + searchCriteria
+                                + "; Checklist id: " + item.getId()
+                                + "; Retry times: " + summaryInfoRetried,
+                                System.currentTimeMillis()));
+                    writeInvalidPageToFile("JobsTotalCountNotFound");
+                }
+            }
+            while (!parseJobs() && ++parseJobsRetried < jobRetry);
+            
+            if (parseJobsRetried >= jobRetry)
+            {
+                USJobsDao.getInstance().saveEvent(new BotEventEntity(
+                            BotEventSeverity.ERROR,
+                            "Jobs Not Found",
+                            "Page: " + currentPage
+                            + "; Search criteria: " + searchCriteria
+                            + "; Checklist id: " + item.getId(),
+                            System.currentTimeMillis()));
+                writeInvalidPageToFile("JobsNotFound");
+            }
+            else
+            {
+                checkPageJobs();
+        
+                saveJobs();
+            }
+        }
+        while (hasNextPage());
+        
+        if (jobsCount != totalJobs)
+        {
+            USJobsDao.getInstance().saveEvent(new BotEventEntity(
+                            BotEventSeverity.WARNING,
+                            "NumberOfCapturedJobs/ExpectedJobs missmatched",
+                             "Captured: " + jobsCount
+                             + "; Expected: " + totalJobs
+                             + "; Checklist id: " + item.getId()
+                             + "; Search Criteria: " + searchCriteria,
+                            System.currentTimeMillis()));
+        }
+    }
+    
+    
+    /**
+     * Gets jobs listing summary info:<br />
+     * <li>Total jobs</li>
+     * <li>Max page number</li>
+     */
+    protected boolean getJobListSummaryInfo() throws Exception
+    {
+        Pattern pattern = BotConfig.getInstance().getPatterns().get("totalJobs");
+        Matcher matcher = pattern.matcher(webData);
+        if (!matcher.find())
+        {
+            return false;
+        }
+        
+        String strTotalJobs = getMatcherGroup(matcher, 1).replace(",", "");
+        
+        try
+        {
+            totalJobs = Integer.parseInt(strTotalJobs);
+            totalPageNumber = (int)Math.ceil((double)totalJobs / jobsPerPage);
+        }
+        catch (Exception ex)
+        {
+            USJobsDao.getInstance().saveEvent(new BotEventEntity(
+                            BotEventSeverity.ERROR,
+                            "Error parsing total jobs",
+                             ex.toString()
+                             + "; JobCount: " + strTotalJobs
+                             + "; Checklist id: " + item.getId()
+                             + "; Search Criteria: " + searchCriteria,
+                            System.currentTimeMillis()));
+            return false;
+        }
+        
+        return true;
+    }
+    
+    
+    /**
+     * Parse jobs from current web page
+     * 
+     * return True if jobs were found from job listing page, false otherwise
+     */
+    protected boolean parseJobs() throws Exception
+    {
+        Pattern pattern = BotConfig.getInstance().getPatterns().get("getJobs");
+        Matcher matcher = pattern.matcher(webData);
+        
+        if (!matcher.find())
+        {
+            return false;
+        }
+        
+        pageJobsCaptured = 0;
+        
+        do
+        {
+            pageJobsCaptured++;
+            jobsCount++;
+            
+            getJob(matcher);
+        }
+        while (matcher.find());
+        
+        return true;
+    }
+    
+    
+    /**
+     * Checks whether there is a next page ready to be downloaded
+     * Increases currentPage by 1
+     * 
+     * @return  True if there is a next page ready to be downloaded, false otherwise
+     */
+    protected boolean hasNextPage() throws Exception
+    {
+        searchCriteria.setCurrentPage(++currentPage);
+        return currentPage<= totalPageNumber && jobsCount < totalJobs;
+    }
+    
+    
+    /**
+     * Gets number of jobs displayed on the web page
+     * 
+     * @return  True if the number of jobs displayed on the web page is retrieved, false otherwise
+     */
+    protected boolean getPageJobsCount()
+    {
+        Pattern pattern = BotConfig.getInstance().getPatterns().get("pageJobsCount");
+        Matcher matcher = pattern.matcher(webData);
+        
+        if (!matcher.find())
+        {
+            return false;
+        }
+        
+        String strPageJobsCount = getMatcherGroup(matcher, 1);
+        try
+        {
+            pageJobsCount = Integer.parseInt(strPageJobsCount);
+        }
+        catch (Exception exc)
+        {
+            try
+            {
+                USJobsDao.getInstance().saveEvent(new BotEventEntity(
+                                BotEventSeverity.ERROR,
+                                "Error parsing page jobs count",
+                                 exc.toString()
+                                 + "; PageJobsCount: " + strPageJobsCount
+                                 + "; Checklist id: " + item.getId()
+                                 + "; Search Criteria: " + searchCriteria,
+                                System.currentTimeMillis()));
+            }
+            catch (Exception ex)
+            {
+                BotBase.logger.fatal("Write ErrorParsingPageJobs failed" 
+                                     + ex.getMessage()
+                                     + "; PageJobsCount: " + strPageJobsCount
+                                     + "; Checklist id: " + item.getId()
+                                     + "; Search Criteria: " + searchCriteria);
+            }
+            
+            return false;
+        }
+        
+        return true;
+    }
+    
+    
+    /**
+     * Gets number of jobs displayed on the job list
+     * 
+     * @return  Number of jobs displayed on the job list
+     */
+    protected void getListingJobsCount()
+    {
+        listingJobsCount = 0;
+        Pattern pattern = BotConfig.getInstance().getPatterns().get("listingJobsCount");
+        Matcher matcher = pattern.matcher(webData);
+        
+        while (matcher.find())
+        {
+            listingJobsCount++;
+        }
+    }
+    
+    
+    /**
+     * Checks whether the number of captured jobs on current page is correct
+     */
+    protected void checkPageJobs() throws Exception
+    {  
+        //getListingJobsCount();
+        // If the number of jobs displayed on the page can not be retrieved
+        if (!getPageJobsCount())
+        {
+            USJobsDao.getInstance().saveEvent(new BotEventEntity(
+                            BotEventSeverity.ERROR,
+                            "Failed to get page jobs count",
+                             "Page: " + currentPage
+                             + "; Search criteria: " + searchCriteria
+                             + "; Checklist id: " + item.getId(),
+                            System.currentTimeMillis()));
+            
+            // If the number of captured jobs dose not equal to JobsPerPage
+            if (pageJobsCaptured != jobsPerPage)
+            {
+                USJobsDao.getInstance().saveEvent(new BotEventEntity(
+                                BotEventSeverity.ERROR,
+                                "PageJobsCaptured/JobsPerPage missmatched",
+                                 "Page: " + currentPage
+                                 + "; Jobs captured: " + pageJobsCaptured
+                                 + "; Jobs per page: " + jobsPerPage
+                                 + "; Search criteria: " + searchCriteria
+                                 + "; Checklist id: " + item.getId(),
+                                System.currentTimeMillis()));
+
+                writeInvalidPageToFile("PageJobsCaptured_JobsPerPage_Missmatch");
+            }
+        }
+        else if (pageJobsCaptured != pageJobsCount)
+        {
+            USJobsDao.getInstance().saveEvent(new BotEventEntity(
+                            BotEventSeverity.ERROR,
+                            "PageJobsCaptured / PageJobsCount missmatched",
+                             "Page: " + currentPage
+                             + "; Jobs captured: " + pageJobsCaptured
+                             + "; Page jobs count: " + pageJobsCount
+                             + "; Search criteria: " + searchCriteria
+                             + "; Checklist id: " + item.getId(),
+                            System.currentTimeMillis()));
+
+            writeInvalidPageToFile("PageJobsCaptured_PageJobsCount_Missmatch");
+        }
+    }
+    
+    
+    /**
+     * Get matching result from specified group
+     * 
+     * @param matcher   Regex matcher
+     * @param group     Number of group to be retrieved matching result
+     * @return          Matching result of a specified group
+     */
+    protected String getMatcherGroup(Matcher matcher, int group)
+    {
+        try
+        {
+            return matcher.group(group).trim();
+        }
+        catch (NullPointerException nullPtExc)
+        {
+            return null;
+        }
+    }
+    
+    
+    /**
+     * Gets job information from regex matcher
+     * 
+     * @param matcher   A regex matcher that contains job information
+     */
+    protected abstract void getJob(Matcher matcher);
+    
+    
+    /**
+     * Save jobs into database
+     */
+    private void saveJobs()
+    {
+        for (USJobsJobEntity job : jobs)
+        {
+            try
+            {
+                ((USJobsDao)USJobsDao.getInstance()).saveJob(job, searchCriteria, job.getMiles(), USJobsSite.getInstance().getId());
+            }
+            catch (Exception exc)
+            {
+                try
+                {
+                    USJobsDao.getInstance().saveEvent(new BotEventEntity(
+                                    BotEventSeverity.FATAL,
+                                    "Error saving job",
+                                     exc.toString()
+                                     + "; Checklist id: " + item.getId()
+                                     + "; Search Criteria: " + searchCriteria,
+                                    System.currentTimeMillis()));
+                }
+                catch (Exception ex)
+                {
+                    BotBase.logger.fatal("Write ErrorSavingJob failed" 
+                                         + ex.getMessage()
+                                         + "; Checklist id: " + item.getId()
+                                         + "; Search Criteria: " + searchCriteria);
+                }
+            }
+        }
+        jobs.clear();
+    }
+    
+    
+    /**
+     * Sends request to search for jobs
+     * 
+     * @throws java.lang.InterruptedException
+     * @throws java.lang.Exception
+     */
+    private void getJobListing() throws InterruptedException, Exception
+    {
+        int retried = 0;
+        
+        do
+        {
+            getWebPage(USJobsSite.getInstance().prepareRequest(searchCriteria, currentPage));
+        }
+        while (!verifyPage() && retried++ < verifyPageRetry);
+        
+        if (retried >= verifyPageRetry)
+        {
+            USJobsDao.getInstance().saveEvent(new BotEventEntity(
+                            BotEventSeverity.WARNING,
+                            "Error verifying page is from " + USJobsSite.getInstance().getSite(),
+                             "Retried: " + retried
+                             + "; Checklist id: " + item.getId()
+                             + "; Search Criteria: " + searchCriteria,
+                            System.currentTimeMillis()));
+        }
+    }
+    
+    
+    /**
+     * Gets web page
+     * 
+     * @param request   Http request used to get web page
+     * @throws java.lang.InterruptedException
+     * @throws java.lang.Exception
+     */
+    private void getWebPage(HttpUriRequest request) throws InterruptedException, Exception
+    {
+        int retry = 0;
+        boolean failed = true;
+        while (failed)
+        {
+            try
+            {
+                time[0] = 0l;
+                time[1] = 0l;
+                
+                HttpResponse response = httpclient.execute(request);
+                HttpEntity entity = response.getEntity();
+
+                if (entity != null)
+                {
+                    webData = EntityUtils.toString(entity);
+                    failed = false;
+                }
+                else
+                {
+                    webData = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (retry < maxWebRetry)
+                {
+                    USJobsDao.getInstance().saveEvent(new BotEventEntity(
+                                    BotEventSeverity.WARNING,
+                                    "Web request error",
+                                     ex.getMessage()
+                                     + "; Retried: " + retry
+                                     + "; Checklist id: " + item.getId()
+                                     + "; Search Criteria: " + searchCriteria,
+                                    System.currentTimeMillis()));
+                    Thread.sleep(sleepingTime.getSleepingTime(retry));
+                    retry++;
+                }
+                else
+                {
+                    throw ex;
+                }
+            }
+            finally
+            {
+                resetHttpClient();
+            }
+        }
+    }
+    
+    
+    /**
+     * Checks whether the page is coming from the expected web site
+     * 
+     * @return  True if the page is coming from the expected web site, false otherwise.
+     */
+    private boolean verifyPage()
+    {
+        Pattern pattern = BotConfig.getInstance().getPatterns().get("verify_page");
+        Matcher matcher = pattern.matcher(webData);
+        
+        return matcher.find();
+    }
+    
+    
+    /**
+     * Save invalid page string to file
+     */
+    private void writeInvalidPageToFile(String title)
+    {
+        BufferedWriter out = null;
+
+        String dir = BotConfig.getInstance().getTempDir();
+        String filename = item.getId()  + "_"
+                        + BotRunEntity.getInstance().getBotId() + "_"
+                        + BotRunEntity.getInstance().getJobId() + "_"
+                        + BotRunEntity.getInstance().getTaskId() + "_"
+                        + BotRunEntity.getInstance().getRunId() + "_"
+                        + System.currentTimeMillis() + "_"
+                        + title;
+        try
+        {
+            String currentDir = System.getProperty("user.dir");
+            String fullname = currentDir + "/" + dir + filename;
+            File file = new File(fullname);
+            if (!file.exists())
+            {
+                file.createNewFile();
+            }
+            out = new BufferedWriter(new FileWriter(fullname));
+                // replace hellowrold.txt with the name of the file
+            out.write(webData);
+                // Write out the specfied string to the file
+            out.close();
+                // flushes and closes the stream
+        }
+        catch(IOException ex)
+        {
+            try
+            {
+                USJobsDao.getInstance().saveEvent(
+                    new BotEventEntity(BotEventSeverity.ERROR,
+                    "Error saving invalid page string",
+                    "Failed to save invalid page string: " + item.getId() +
+                    "; " + ex.toString(),
+                    System.currentTimeMillis()));
+            }
+            catch (Exception exc)
+            {
+                BotBase.logger.error("Saving page string failed - "
+                     + item.getId() + "; "
+                     + ex.toString() + exc.toString());
+            }
+        }
+    }
+    
+    
+    /**
+     * Resets HttpClient
+     * 
+     * @throws java.lang.Exception
+     */
+    private void resetHttpClient() throws Exception
+    {
+        httpclient.getConnectionManager().shutdown();
+        prepare();
+    }
+}

@@ -1,0 +1,74 @@
+package com.boryi.bots.bestbuy;
+
+import java.math.BigDecimal;
+
+/**
+ * The BestBuy TV entity
+ *
+ * <p><strong>Copyright 2010 - 2018 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Yang Song
+ * @version 1.0
+ * @since December 2010
+ */
+public class TV extends Product{
+    private String resolution;
+    private String refreshRate;
+    private String size;
+    private boolean internetConnected;
+    private boolean is3D;
+
+
+    public TV()
+    {}
+
+
+    public TV(Long sku, String model, String title, BigDecimal price,
+            BigDecimal salePrice, String brand, int categoryId, String url,
+            String resolution, String refreshRate, String size,
+            boolean internetConnected, boolean is3D)
+    {
+        super(sku, model, title, price, salePrice, brand, categoryId, url);
+        this.resolution = resolution;
+        this.refreshRate = refreshRate;
+        this.size = size;
+        this.internetConnected = internetConnected;
+        this.is3D = is3D;
+    }
+
+    /**
+     * @return the resolution
+     */
+    public String getResolution() {
+        return resolution;
+    }
+
+    /**
+     * @return the refreshRate
+     */
+    public String getRefreshRate() {
+        return refreshRate;
+    }
+
+    /**
+     * @return the size
+     */
+    public String getSize() {
+        return size;
+    }
+
+    /**
+     * @return the internetConnected
+     */
+    public boolean isInternetConnected() {
+        return internetConnected;
+    }
+
+
+    /**
+     * @return the is3D
+     */
+    public boolean is3D() {
+        return is3D;
+    }
+}

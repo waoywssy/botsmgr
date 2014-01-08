@@ -1,0 +1,83 @@
+package com.boryi.bots.bestbuy;
+
+import com.boryi.bots.base.*;
+import java.util.Date;
+import java.util.Hashtable;
+
+/**
+ * Example main class for the bot
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Gang Huang, Ph.D.
+ * @version 1.0
+ * @since August 2009
+ */
+public class BestBuy
+{
+    public static void main(String[] args)
+    {
+        Hashtable<String, Object> values;
+        try
+        {
+            values = BotBase.getArguments(args);
+        }
+        catch (Exception exArgs)
+        {
+            System.out.println("usage: ");
+            System.out.println();
+            System.out.println("java -jar botname serverId botId jobId taskId isResume config");
+            System.out.println("java -jar botname serverId botId jobId taskId config");
+            System.out.println("java -jar botname serverId botId jobId isResume config");
+            System.out.println("java -jar botname serverId botId jobId config");
+            return;
+        }
+
+        int serverId = ((Integer)values.get("serverId")).intValue();
+        int botId = ((Integer)values.get("botId")).intValue();
+        int jobId = ((Integer)values.get("jobId")).intValue();
+        int taskId = ((Integer)values.get("taskId")).intValue();
+        boolean isResume = ((Boolean)values.get("resume")).booleanValue();
+        String configFile = (String)values.get("config");
+        try
+        {
+            System.out.println("Start to run bestbuy bot...");
+            
+            System.out.println("Server: " + serverId);
+            System.out.println("BotId: " + botId);
+            System.out.println("JobId: " + jobId);
+            System.out.println("taskId: " + taskId);
+
+            BotRunEntity run = new BotRunEntity(serverId, botId, jobId, taskId,
+                    System.currentTimeMillis(), isResume);
+
+            BotConfig config = new BotConfig(configFile);
+
+            BestBuyDao bestBuyDao = new BestBuyDao();
+
+            BotChecklist checklist = new BotChecklist();
+
+            BotWebStatistic webStatistic = new BotWebStatistic();
+
+            BotThread botThread = new BotThread();
+
+            for (int i = 0; i < config.getWebThreads(); i++)
+            {
+                BestBuyWebThread webThread = new BestBuyWebThread();
+            }
+            BotBase base = new BotBase();
+
+            System.out.println("The run finished");
+        }
+        catch (Exception ex)
+        {
+            System.out.println(ex.toString());
+            
+            BotBase.logger.fatal("Bot Id: " + botId
+                    + " Job Id: " + jobId
+                    + " Task Id: " + taskId
+                    + BotDateFormat.getDateFormat(BotDateFormatType.MILLISECOND).format(new Date())
+                    + ex.toString());
+        }
+    }
+}

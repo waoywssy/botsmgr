@@ -1,0 +1,401 @@
+package com.boryi.bots.hnrcsc;
+
+import com.boryi.bots.base.*;
+import java.net.URI;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.util.EntityUtils;
+
+
+/**
+ * Thread containing fields and methods to parse and save data from geoname
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Yang Song
+ * @version 1.0
+ * @since September 2009
+ */
+public class HnrcsceWebThread extends BotWebThread
+{
+    /**
+     * The web service url part to retrieve locations' pages
+     */
+    private String domain;
+    /**
+     * Arraylist to hold countries
+     */
+    private ArrayList<HnrcscCompanyEntity> companies;
+    /**
+     * Arraylist to hold locations
+     */
+    private ArrayList<HnrcscJobEntity> jobs;
+
+    /**
+     * Constructor
+     */
+    public HnrcsceWebThread()
+    {
+        checklist = new ArrayList<BotChecklistEntity>();
+        companies = new ArrayList<HnrcscCompanyEntity>();
+        jobs = new ArrayList<HnrcscJobEntity>();
+
+        // set default domain
+        domain = "http://www.hnrcsc.com";
+        if(BotConfig.getInstance().getParams().containsKey("domain"))
+        {
+            domain = BotConfig.getInstance().getParams().get("domain");
+        }
+    }
+
+    @Override
+    public void parseWebData()
+    {
+        try
+        {
+            webData = new String(webData.getBytes("ISO-8859-1"), "GB2312");
+            // stage 0 for company list, 1 for companies, 2 for jobs
+            if (item.getStage() == 0)
+            {
+                parseChecklists(webData);
+            }
+            else if (item.getStage() == 1)
+            {
+                parseCompanies(webData);
+            }
+            else if (item.getStage() == 2)
+            {
+                parseJobs(webData);
+            }
+        }
+        catch(Exception ex)
+        {
+            try
+            {
+                HnrcscDao.getInstance().saveEvent(
+                        new BotEventEntity(
+                            BotEventSeverity.WARNING,
+                            "Unsupported encoding",
+                            ex.toString(),
+                            System.currentTimeMillis()));
+            }
+            catch (Exception exs)
+            {
+                BotBase.logger.error(exs.toString());
+            }
+        }
+    }
+
+
+    @Override
+    public void saveData()
+    {
+        try
+        {
+            // stage 1 for companies, 2 for jobs
+            if (item.getStage() == 1)
+            {
+                saveCompanies();
+            }
+            else if (item.getStage() == 2)
+            {
+                saveJobs();
+            }
+        }
+        catch(Exception ex)
+        {
+            BotBase.logger.error(ex.toString());
+        }
+    }
+
+
+    /***
+     * Parse and save country information
+     *
+     * @param countryXml xml string from the web servide from geonames.org
+     */
+    private void parseCompanies(String companyString) throws Exception
+    {
+        Pattern pattern = BotConfig.getInstance().getPatterns().get("get_company_info");
+        Matcher matcher = pattern.matcher(webData);
+        if (matcher.find())
+        {
+            String companyPageString = getCompanyPage(item.getId());
+            companyPageString = new String(companyPageString.getBytes("ISO-8859-1"), "GB2312");
+            
+            Pattern companyPattern = BotConfig.getInstance().getPatterns().get("get_company_info2");
+            Matcher companyMatcher = companyPattern.matcher(companyPageString);
+            if (companyMatcher.find())
+            {
+                HnrcscCompanyEntity company = new HnrcscCompanyEntity(
+                    item.getId(),                                       // id
+                    matcher.group(2) != null ?
+                        matcher.group(2).replace("&nbsp;", "") : "",    // name
+                    matcher.group(5) != null ?
+                        matcher.group(5).replace("&nbsp;", "") : "",    // phone
+                    matcher.group(6) != null ?
+                        matcher.group(6).replace("&nbsp;", "") : "",    // fax
+                    matcher.group(7) != null ?
+                        matcher.group(7).replace("&nbsp;", "") : "",    // contactor
+                    matcher.group(8) != null ?
+                        matcher.group(8).replace("&nbsp;", "") : "",    // zipcode
+                    matcher.group(9) != null ?
+                        matcher.group(9).replace("&nbsp;", "") : "",    // homepage
+                    matcher.group(11) != null ?
+                        matcher.group(11).replace("&nbsp;", "") : "",   // email
+                    matcher.group(13) != null ?
+                        matcher.group(13).replace("&nbsp;", "") : "",   // address
+                    companyMatcher.group(1) != null ?
+                        companyMatcher.group(1).replace("&nbsp;", "") : "", // type
+                    companyMatcher.group(2) != null ?
+                        companyMatcher.group(2).replace("&nbsp;", "") : "", // trade type
+                    companyMatcher.group(4) != null ?
+                        companyMatcher.group(4).replace("&nbsp;", "") : "", // employee count
+                    companyMatcher.group(7) != null ?
+                        companyMatcher.group(7).replace("&nbsp;", "") : "", // register capital
+                    matcher.group(16) != null ?
+                        matcher.group(16).replace("&nbsp;", "").replace("<br>", "\n\r") : "" // info
+                        );
+                companies.add(company);
+            }
+        }
+    }
+
+
+    /**
+     * Save companies into database
+     */
+    private void saveCompanies() throws ClassNotFoundException, InstantiationException,
+            IllegalAccessException, SQLException, InterruptedException
+    {
+        int count = companies.size();
+        HnrcscCompanyEntity company = null;
+        BotChecklistEntity bce = null;
+
+        if (checklist == null)
+        {
+            checklist = new ArrayList<BotChecklistEntity>();
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            company = companies.get(i);
+            try
+            {
+                ((HnrcscDao) HnrcscDao.getInstance()).saveCompany(company);
+            }
+            catch (Exception ex)
+            {
+                BotDao.getInstance().saveEvent(
+                    new BotEventEntity(BotEventSeverity.ERROR,
+                    "Error saving company",
+                    "Failed to save company: " + company.getId() +
+                    "; " + ex.toString(),
+                    System.currentTimeMillis()));
+                
+                continue;
+            }
+
+            // get the joblist from the company page
+            Pattern patternJobList = BotConfig.getInstance().getPatterns().get("job_list");
+            Matcher matcherJobList = patternJobList.matcher(webData);
+            while (matcherJobList.find())
+            {
+                bce = new BotChecklistEntity(
+                        URI.create(domain + matcherJobList.group(2)),
+                        2,
+                        Integer.valueOf(matcherJobList.group(3)),
+                        item.getLevel() + 1);
+                checklist.add(bce);
+
+                try
+                {
+                    ((HnrcscDao) HnrcscDao.getInstance()).saveCompanyJob(
+                            item.getId(),
+                            Integer.valueOf(matcherJobList.group(3)));
+                }
+                catch (Exception ex)
+                {
+                    BotDao.getInstance().saveEvent(
+                        new BotEventEntity(BotEventSeverity.ERROR,
+                        "Error saving company job",
+                        "Failed to save company: " + company.getId() +
+                        "; job:" + Integer.valueOf(matcherJobList.group(3)) +
+                        "; " + ex.toString(),
+                        System.currentTimeMillis()));
+                }
+            }
+        }
+        companies = new ArrayList<HnrcscCompanyEntity>();
+    }
+
+
+    /**
+     * Save location data into database
+     */
+    private void saveJobs() throws ClassNotFoundException, InstantiationException,
+            IllegalAccessException, SQLException, InterruptedException
+    {
+        int count = jobs.size();
+        HnrcscJobEntity job = null;
+
+        if (checklist==null)
+        {
+            checklist = new ArrayList<BotChecklistEntity>(count);
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            job = jobs.get(i);
+            try
+            {
+                ((HnrcscDao)HnrcscDao.getInstance()).saveJob(job);
+            }
+            catch (Exception ex)
+            {
+                BotDao.getInstance().saveEvent(
+                    new BotEventEntity(BotEventSeverity.ERROR,
+                    "Error saving job",
+                    "Failed to save job: " + job.getId() +
+                    "; " + ex.toString(),
+                    System.currentTimeMillis()));
+
+                continue;
+            }
+        }
+        jobs = new ArrayList<HnrcscJobEntity>();
+    }
+
+
+    /**
+     * parse locations data
+     *
+     * @param webData
+     */
+    private void parseJobs(String webData)
+    {
+        BotChecklistEntity bce = null;
+        checklist = new ArrayList<BotChecklistEntity>();
+
+        Pattern pattern = BotConfig.getInstance().getPatterns().get("job_info");
+        Matcher matcher = pattern.matcher(webData);
+
+        if (matcher.find())
+        {
+            HnrcscJobEntity job = new HnrcscJobEntity(
+                item.getId(),                                   // id
+                matcher.group(1) != null ?
+                    matcher.group(1).replace("&nbsp;", "").trim() : "",  // name
+                matcher.group(2) != null ?
+                    matcher.group(2).replace("&nbsp;", "").trim() : "",  // count
+                matcher.group(4) != null ?
+                    matcher.group(4).replace("&nbsp;", "").trim() : "",  // apartment
+                matcher.group(3) != null ?
+                    matcher.group(3).replace("&nbsp;", "").trim() : "",  // date
+                matcher.group(6) != null ?
+                    matcher.group(6).replace("&nbsp;", "").trim() : "",  // until
+                matcher.group(7) != null ?
+                    matcher.group(7).replace("&nbsp;", "").trim() : "",  // type
+                matcher.group(8) != null ?
+                    matcher.group(8).replace("&nbsp;", "").trim() : "",  // education
+                matcher.group(9) != null ?
+                    matcher.group(9).replace("&nbsp;", "").trim() : "",  // location
+                matcher.group(10) != null ?
+                    matcher.group(10).replace("&nbsp;", "").trim() : "", // salary
+                matcher.group(11) != null ?
+                    matcher.group(11).replace("&nbsp;", "").trim() : "", // salaryDetail
+                matcher.group(12) != null ?
+                    matcher.group(12).replace("&nbsp;", "").trim() : "", // phone
+                matcher.group(13) != null ?
+                    matcher.group(13).replace("&nbsp;", "").trim() : "", // email
+                matcher.group(14) != null ?
+                    matcher.group(14).replace("&nbsp;", "").trim() : "", // contactor
+                matcher.group(16) != null ?
+                    matcher.group(16).replace("&nbsp;", "").trim() : "", // description
+                matcher.group(17) != null ?
+                    matcher.group(17).replace("&nbsp;", "").trim() : "", // requirement
+                matcher.group(18) != null ?
+                    matcher.group(18).replace("&nbsp;", "").trim() : "");    // applyertype
+
+            jobs.add(job);
+        }
+    }
+
+
+    /**
+     * Parse the company list page
+     * 
+     * @param webData the source code of the company list page
+     */
+    private void parseChecklists(String webData) throws ClassNotFoundException,
+            InstantiationException, IllegalAccessException, SQLException, InterruptedException
+    {
+        BotChecklistEntity bce = null;
+        checklist = new ArrayList<BotChecklistEntity>();
+        
+        Pattern pattern = BotConfig.getInstance().getPatterns().get("get_companies");
+
+        Matcher matcher = pattern.matcher(webData);
+
+        try
+        {
+            while (matcher.find())
+            {
+                bce = new BotChecklistEntity(
+                        URI.create(domain + matcher.group(1)),
+                        1,
+                        Integer.valueOf(matcher.group(2)),
+                        item.getLevel() + 1);
+                checklist.add(bce);
+            }
+        }
+        catch(Exception ex)
+        {
+            BotDao.getInstance().saveEvent(
+                    new BotEventEntity(BotEventSeverity.ERROR,
+                    "Error parsing company list",
+                    "Failed : " + item.getId() + ex.toString(),
+                    System.currentTimeMillis()));
+        }
+    }
+
+
+    /**
+     * Get company page source
+     * 
+     * @param id the company id
+     * @return the company page source
+     */
+    private String getCompanyPage(int id) throws ClassNotFoundException,
+            InstantiationException, IllegalAccessException,
+            SQLException, InterruptedException
+    {
+        String result = null;
+        try
+        {
+            String companyUrl = "http://www.hnrcsc.com/jobs/posFiles/showDwDetail.asp?dwid=" + id;
+            HttpGet httpget = new HttpGet(companyUrl);
+            HttpResponse response = httpclient.execute(httpget);
+            HttpEntity entity = response.getEntity();
+
+            if (entity != null)
+            {
+                result = EntityUtils.toString(entity);
+            }
+        }
+        catch(Exception ex)
+        {
+            BotDao.getInstance().saveEvent(
+                    new BotEventEntity(BotEventSeverity.ERROR,
+                    "Error doanloading company page",
+                    "Failed : " + item.getId() + ex.toString(),
+                    System.currentTimeMillis()));
+        }
+        return result;
+    }
+}

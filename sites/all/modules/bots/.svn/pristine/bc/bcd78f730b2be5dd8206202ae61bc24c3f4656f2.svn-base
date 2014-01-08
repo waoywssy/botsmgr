@@ -1,0 +1,91 @@
+package com.boryi.bots.bestbuy;
+
+import java.math.BigDecimal;
+
+/**
+ * The BestBuy Computer entity
+ *
+ * <p><strong>Copyright 2010 - 2018 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Yang Song
+ * @version 1.0
+ * @since December 2010
+ */
+public class Computer extends Product{
+    private String processor;
+    private String memory;
+    private String hardDiskSize;
+    private String color;
+    private String display;
+    private String os;
+    private String description;
+
+
+    public Computer()
+    {}
+
+
+    public Computer(Long sku, String model, String title, BigDecimal price,
+            BigDecimal salePrice, String brand, int categoryId, String url,
+            String processor, String memory, String hardDiskSize,
+            String color, String display, String os, String description)
+    {
+        super(sku, model, title, price, salePrice, brand, categoryId, url);
+        this.processor = processor;
+        this.memory = memory;
+        this.hardDiskSize = hardDiskSize;
+        this.color = color;
+        this.display = display;
+        this.os = os;
+        this.description = description;
+    }
+
+    /**
+     * @return the processor
+     */
+    public String getProcessor() {
+        return processor;
+    }
+
+    /**
+     * @return the memory
+     */
+    public String getMemory() {
+        return memory;
+    }
+
+    /**
+     * @return the hardDiskSize
+     */
+    public String getHardDiskSize() {
+        return hardDiskSize;
+    }
+
+    /**
+     * @return the color
+     */
+    public String getColor() {
+        return color;
+    }
+
+    /**
+     * @return the display
+     */
+    public String getDisplay() {
+        return display;
+    }
+
+    /**
+     * @return the os
+     */
+    public String getOs() {
+        return os;
+    }
+
+    /**
+     * @return the description
+     */
+    public String getDescription() {
+        return description;
+    }
+}

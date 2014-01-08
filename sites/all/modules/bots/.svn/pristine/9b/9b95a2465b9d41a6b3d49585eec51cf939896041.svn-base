@@ -1,0 +1,2 @@
+GRANT ALL ON usjobs.* TO 'botmaster'@'localhost' IDENTIFIED BY 'pass#word1';
+GRANT SELECT, EXECUTE ON usjobs.* TO 'botuser'@'localhost' IDENTIFIED BY 'pass#word1';

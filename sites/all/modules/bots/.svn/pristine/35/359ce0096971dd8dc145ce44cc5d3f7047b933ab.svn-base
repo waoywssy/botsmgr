@@ -1,0 +1,185 @@
+package com.boryi.bots.usjobs.monster;
+
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import java.util.Date;
+import java.util.Calendar;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+
+import org.apache.commons.lang.StringEscapeUtils;
+
+import com.boryi.bots.base.BotConfig;
+import com.boryi.bots.base.BotBase;
+import com.boryi.bots.base.BotEventEntity;
+import com.boryi.bots.base.BotEventSeverity;
+
+import com.boryi.bots.usjobs.base.USJobsWebThreadBase;
+import com.boryi.bots.usjobs.base.USJobsLocationEntity;
+import com.boryi.bots.usjobs.base.USJobsSite;
+import com.boryi.bots.usjobs.base.USJobsJobEntity;
+import com.boryi.bots.usjobs.base.USJobsDao;
+
+/**
+ * Web thread class containing fields and methods to parse and save data 
+ * from monster.com.
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Hang Su
+ * @version 1.0
+ * @since December 2009
+ */
+public class MonsterWebThread extends USJobsWebThreadBase
+{    
+    @Override
+    protected boolean parseJobs() throws Exception
+    {
+        Pattern pattern = BotConfig.getInstance().getPatterns().get("getJobsTable");
+        Matcher matcher = pattern.matcher(webData);
+        
+        if (!matcher.find())
+        {
+            return false;
+        }
+        
+        String jobsTable = StringEscapeUtils.unescapeJava(matcher.group(1));
+        jobsTable = StringEscapeUtils.unescapeJava(jobsTable);
+        
+        pattern = BotConfig.getInstance().getPatterns().get("getJobs");
+        matcher = pattern.matcher(jobsTable);
+        
+        if (!matcher.find())
+        {
+            return false;
+        }
+        
+        pageJobsCaptured = 0;
+        
+        do
+        {
+            pageJobsCaptured++;
+            jobsCount++;
+            
+            getJob(matcher);
+        }
+        while (matcher.find());
+        
+        return true;
+    }
+    
+
+    @Override
+    protected void getJob(Matcher matcher) 
+    {
+        int year = Calendar.getInstance().get(Calendar.YEAR);
+        String strDatePosted = getMatcherGroup(matcher, 1);
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
+        Date dtDatePosted = new Date();
+        try
+        {
+            dtDatePosted = formatter.parse(year + "/" + strDatePosted);
+            // If DatePosted is after the current date
+            if (dtDatePosted.after(new Date(System.currentTimeMillis())))
+            {
+                dtDatePosted = formatter.parse((year - 1) + "/" + strDatePosted);
+            }
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                USJobsDao.getInstance().saveEvent(new BotEventEntity(
+                            BotEventSeverity.ERROR,
+                            "Error parsing job posted date",
+                            ex.getMessage()
+                            + "; Date Posted: " + strDatePosted
+                            + "; Current Page: " + currentPage
+                            + "; Search criteria: " + searchCriteria
+                            + "; Checklist id: " + item.getId(),
+                            System.currentTimeMillis()));
+            }
+            catch (Exception exc)
+            {
+                BotBase.logger.fatal("Write ErrorParingJobDatePosted failed" 
+                                     + exc.getMessage()
+                                     + "; Date Posted: " + strDatePosted
+                                     + "; Current Page: " + currentPage
+                                     + "; Search criteria: " + searchCriteria
+                                     + "; Checklist id: " + item.getId());
+            }
+        }
+        Timestamp datePosted = new Timestamp(dtDatePosted.getTime());
+        String jobLink = getMatcherGroup(matcher, 2);
+        String jobId = getMatcherGroup(matcher, 3);
+        String jobTitle = getMatcherGroup(matcher, 4);
+        String companyLink = getMatcherGroup(matcher, 6);
+        String companyName;
+        if (companyLink != null)
+        {
+            companyName = getMatcherGroup(matcher, 5);
+        }
+        else
+        {
+            companyName = getMatcherGroup(matcher, 7);
+        }
+        String city = getMatcherGroup(matcher, 8);
+        String state = getMatcherGroup(matcher, 9);
+        String zipcode = getMatcherGroup(matcher, 10);
+        String locationLink = getMatcherGroup(matcher, 11);
+        int miles = Integer.MIN_VALUE;
+        String milesLow = getMatcherGroup(matcher, 12);
+        String milesHigh = getMatcherGroup(matcher, 13);
+        if (milesHigh != null)
+        {
+            milesLow = milesHigh;
+        }
+        if (milesLow != null)
+        {
+            try
+            {
+                miles = Integer.parseInt(milesLow);
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    USJobsDao.getInstance().saveEvent(new BotEventEntity(
+                                BotEventSeverity.ERROR,
+                                "Error parsing job miles",
+                                ex.getMessage()
+                                + "; Job: " + jobTitle
+                                + "; Job link: " + jobLink
+                                + "; Miles: " + milesLow
+                                + "; Current Page: " + currentPage
+                                + "; Search criteria: " + searchCriteria
+                                + "; Checklist id: " + item.getId(),
+                                System.currentTimeMillis()));
+                }
+                catch (Exception exc)
+                {
+                    BotBase.logger.fatal("Write ErrorParingJobMiles failed" 
+                                         + exc.getMessage()
+                                         + "; Job: " + jobTitle
+                                         + "; Job link: " + jobLink
+                                         + "; Miles: " + milesLow
+                                         + "; Current Page: " + currentPage
+                                         + "; Search criteria: " + searchCriteria
+                                         + "; Checklist id: " + item.getId());
+                }
+            }
+        }
+        
+        USJobsLocationEntity location = new USJobsLocationEntity(zipcode, city, state);
+        location.setUrl(locationLink);
+        
+        jobs.add(new USJobsJobEntity(USJobsSite.getInstance().getId(),
+                                     jobId,
+                                     datePosted,
+                                     jobTitle,
+                                     jobLink,
+                                     companyName,
+                                     miles,
+                                     location));
+    }
+}

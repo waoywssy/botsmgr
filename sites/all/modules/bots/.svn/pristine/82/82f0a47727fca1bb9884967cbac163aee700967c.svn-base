@@ -1,0 +1,87 @@
+package com.boryi.bots.usjobs.base;
+
+import java.net.URI;
+import java.sql.SQLException;
+import java.util.ArrayList;
+
+import com.boryi.bots.base.BotBase;
+import com.boryi.bots.base.BotConfig;
+import com.boryi.bots.base.BotRunEntity;
+import com.boryi.bots.base.BotEventEntity;
+import com.boryi.bots.base.BotEventSeverity;
+import com.boryi.bots.base.BotChecklist;
+import com.boryi.bots.base.BotChecklistEntity;
+
+/**
+ * USJobs bot base class
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Hang Su
+ * @version 1.0
+ * @since December 2009
+ */
+public class USJobsBase extends BotBase
+{
+    /**
+     * Constructor to initialize an instance of BotBase
+     */
+    public USJobsBase() throws ClassNotFoundException, 
+            InstantiationException, IllegalAccessException, SQLException, 
+            InterruptedException, Exception
+    {
+        super();
+    }
+    
+    @Override
+    protected void prepare() throws ClassNotFoundException, 
+            InstantiationException, IllegalAccessException, SQLException, 
+            InterruptedException, Exception
+    {
+        USJobsDao dao = ((USJobsDao)USJobsDao.getInstance());
+        
+        String siteName = "Monster.com";
+        if (BotConfig.getInstance().getParams().containsKey("site"))
+        {
+            siteName = BotConfig.getInstance().getParams().get("site");
+        }
+        
+        // Initializes Site information
+        dao.getSite(siteName);
+        
+        // Retrieves search criterias
+        dao.getSearchCriterias();
+        
+        
+        dao.getRun();
+        if (BotRunEntity.getInstance().getRunId() == 0)
+        {
+            if (BotRunEntity.getInstance().getIsResume())
+            {
+                throw new Exception("Cannot resume a finished or non-existing run.  Please start a new run if needed.");
+            }
+            else
+            {
+                throw new Exception("Cannot create a run id in the central database or insert bot-run id in local database.");
+            }
+        }
+        
+        dao.saveEvent(new BotEventEntity(
+                BotEventSeverity.INFO, "Run starts", "Run starts ...", 
+                System.currentTimeMillis()));
+        
+        if (!BotRunEntity.getInstance().getIsResume())
+        {
+            dao.clearChecklist();
+			ArrayList<BotChecklistEntity> checkList = new ArrayList<BotChecklistEntity>(USJobsSearchCriteriaList.getInstance().getSize());
+            for (int i = 0; i < USJobsSearchCriteriaList.getInstance().getSize(); i++)
+            {
+                BotChecklistEntity item = new BotChecklistEntity(
+                        new URI(USJobsSite.getInstance().url), 0, USJobsSearchCriteriaList.getInstance().get(i).getId(), 0);
+                checkList.add(item);
+            }
+			dao.saveChecklist(checkList);
+        }
+        BotChecklist.getInstance().addChecklist(dao.getChecklist());
+    }
+}

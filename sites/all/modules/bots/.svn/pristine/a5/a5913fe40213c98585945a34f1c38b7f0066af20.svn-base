@@ -1,0 +1,15 @@
+#!/bin/sh
+
+USER=botmaster
+PASSWORD=pass#word1
+DATABASE=usjobs
+SQLROOT=/home/hangsu/workspace/boryi.bots/com.boryi.bots.usjobs/com.boryi.bots.usjobs.monster/src/sql/
+
+# install bot information
+mysql -u $USER --password=$PASSWORD $DATABASE < ${SQLROOT}botinfo/insert_bot_info.sql
+
+# install site information
+mysql -u $USER --password=$PASSWORD $DATABASE < ${SQLROOT}siteinfo/insert_site_info.sql
+
+# install stored procedure
+mysql -u $USER --password=$PASSWORD $DATABASE < ${SQLROOT}local/pl/create_pl.sql

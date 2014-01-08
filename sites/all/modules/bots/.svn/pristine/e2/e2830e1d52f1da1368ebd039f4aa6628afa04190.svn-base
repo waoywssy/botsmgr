@@ -1,0 +1,4 @@
+# get in-cart sale price
+
+<a[^<>]*popUp\('([^,']+)[^>]*>
+  \s*see\s*price\s*in\s*cart

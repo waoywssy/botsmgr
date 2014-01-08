@@ -1,0 +1,231 @@
+<?php
+function get_data()
+{
+	// get the requested type
+	$type = $_REQUEST['type'];
+	// get the requested page
+	$page = $_REQUEST['page'];
+	// get how many rows we want to have into the grid
+	// rowNum parameter in the grid
+	$limit = $_REQUEST['rows'];
+	// get index row - i.e. user click to sort
+	// at first time sortname parameter - after that the index from colModel
+	$sidx = $_REQUEST['sidx'];
+	// sorting order - at first time sortorder
+	$sord = $_REQUEST['sord']; 
+
+	$bid = $_REQUEST['bid'];
+	$jid = $_REQUEST['jid'];
+	$tid = $_REQUEST['tid'];
+	$rid = $_REQUEST['rid'];
+
+	// if we not pass at first time index use the first column for the index
+	if(!$sidx) $sidx =1;
+	// connect to the MySQL database server
+	db_set_active('bot_central');
+
+	$sql = '';
+	if ($type == 'bot')
+	{
+		$sql = "SELECT COUNT(*) AS count FROM bots_bts";
+	}
+	else if ($type == 'job')
+	{
+		if (empty($bid)){
+			$query = "SELECT bts_id FROM bots_bts ORDER BY bts_id LIMIT 0, 1";
+			$bid = db_result(db_query($query));
+			if (empty($bid)){$bid = -1;}
+		}
+		$sql = "SELECT COUNT(*) AS count FROM jobs_jbs WHERE jbs_bts_id = $bid";
+	}
+	else if ($type == 'task')
+	{
+		if (empty($bid)){
+			$query = "SELECT bts_id FROM bots_bts ORDER BY bts_id LIMIT 0, 1";
+			$bid = db_result(db_query($query));
+			if (empty($bid)){$bid = -1;}
+		}
+		if (empty($jid)){
+			$query = "SELECT jbs_id FROM jobs_jbs WHERE jbs_bts_id = $bid ORDER BY jbs_id LIMIT 0, 1";
+			$jid = db_result(db_query($query));
+			if (empty($jid)){$jid = -1;}
+		}
+		$sql = "SELECT COUNT(*) AS count FROM tasks_tsk where tsk_bts_id = $bid and tsk_jbs_id = $jid";
+	}
+	else if ($type == 'run')
+	{
+		if (empty($bid)){
+			$query = "SELECT bts_id FROM bots_bts ORDER BY bts_id LIMIT 0, 1";
+			$bid = db_result(db_query($query));
+			if (empty($bid)){$bid = -1;}
+		}
+		if (empty($jid)){
+			$query = "SELECT jbs_id FROM jobs_jbs WHERE jbs_bts_id = $bid ORDER BY jbs_id LIMIT 0, 1";
+			$jid = db_result(db_query($query));
+			if (empty($jid)){$jid = -1;}
+		}
+		if (empty($tid)){
+			$query = "SELECT tsk_id FROM tasks_tsk WHERE tsk_bts_id = $bid AND tsk_jbs_id = $jid ORDER BY tsk_id LIMIT 0, 1";
+			$tid = db_result(db_query($query));
+			if (empty($tid)){$tid = -1;}
+		}
+		$sql = "SELECT COUNT(*) AS count FROM runs_rns where rns_bts_id = $bid and rns_jbs_id = $jid and rns_tsk_id = $tid";
+	}
+	else if ($type == 'event')
+	{
+		if (empty($bid)){
+			$query = "SELECT bts_id FROM bots_bts ORDER BY bts_id LIMIT 0, 1";
+			$bid = db_result(db_query($query));
+			if (empty($bid)){$bid = -1;}
+		}
+		if (empty($jid)){
+			$query = "SELECT jbs_id FROM jobs_jbs WHERE jbs_bts_id = $bid ORDER BY jbs_id LIMIT 0, 1";
+			$jid = db_result(db_query($query));
+			if (empty($jid)){$jid = -1;}
+		}
+		if (empty($tid)){
+			$query = "SELECT tsk_id FROM tasks_tsk WHERE tsk_bts_id = $bid AND tsk_jbs_id = $jid ORDER BY tsk_id LIMIT 0, 1";
+			$tid = db_result(db_query($query));
+			if (empty($tid)){$tid = -1;}
+		}
+		if (empty($rid)){
+			$query = "SELECT rns_id FROM runs_rns WHERE rns_bts_id = $bid AND rns_jbs_id = $jid AND rns_tsk_id = $tid ORDER BY rns_id DESC LIMIT 0, 1";
+			$rid = db_result(db_query($query));
+			if (empty($rid)){$rid = -1;}
+		}
+		$sql = "SELECT COUNT(*) AS count FROM events_vnt where vnt_bts_id = $bid and vnt_jbs_id = $jid and vnt_tsk_id = $tid and vnt_rns_id = $rid";
+	}
+	// calculate the number of rows for the query. We need this to paging the result
+	$result = db_query($sql);
+	$count = db_result($result);
+
+	// calculation of total pages for the query
+	if($count > 0) {
+		$total_pages = ceil($count/$limit);
+	} else {
+		$total_pages = 0;
+	}
+
+	// if for some reasons the requested page is greater than the total
+	// set the requested page to total page
+	if ($page > $total_pages) $page = $total_pages;
+	// calculate the starting position of the rows
+	$start = $limit*$page - $limit; // do not put $limit*($page - 1)
+	// if for some reasons start position is negative set it to 0
+	// typical case is that the user type 0 for the requested page
+	if($start < 0) $start = 0;
+
+	$sql = '';
+	if ($type == 'bot')
+	{
+		$sql = "SELECT bts_id, bts_name, bts_version, bts_description, bts_enabled, bts_created, bts_last_updated, bts_path, bts_file FROM bots_bts ";
+	}
+	else if ($type == 'job')
+	{
+		$sql  = "SELECT `jbs_id`, `jbs_name`, `jbs_description`, `jbs_enabled`, `jbs_created`, `jbs_last_updated`, `jbs_path`, `jbs_file`, `jbs_dbname`, IFNULL(`count`,0) as count
+				FROM jobs_jbs
+				LEFT OUTER JOIN 
+				(
+					SELECT tsk_bts_id, tsk_jbs_id, count(*) as count 
+					FROM `tasks_tsk`
+					WHERE tsk_running =1
+					GROUP BY tsk_bts_id, tsk_jbs_id
+				)
+				AS M ON jbs_bts_id = tsk_bts_id AND jbs_id = tsk_jbs_id
+				where jbs_bts_id = $bid ";
+	}
+	else if ($type == 'task')
+	{
+		$sql = "SELECT `tsk_bts_id`, `tsk_jbs_id`, `tsk_id`, `tsk_name`, `tsk_description`, `tsk_enabled`, `tsk_created`, `tsk_last_updated`, `tsk_minute`, `tsk_hour`, `tsk_dom`, `tsk_month`, `tsk_dow`, `tsk_running`, `tsk_srv_id` 
+					FROM `tasks_tsk` where tsk_bts_id = $bid and tsk_jbs_id = $jid ";
+	}
+	else if ($type == 'run')
+	{
+		$sql = "SELECT `rns_id`, `rns_start`, `rns_end`, `rns_duration`, `rns_result`, `rns_srv_id` 
+					FROM `runs_rns` where rns_bts_id = $bid and rns_jbs_id = $jid and rns_tsk_id = $tid ";
+	}
+	else if ($type == 'event')
+	{
+		$sql = "SELECT `vnt_datetime`, `vnt_subject`, `vnt_detail`, `vnt_severity` 
+					FROM `events_vnt` where vnt_bts_id = $bid and vnt_jbs_id = $jid and vnt_tsk_id = $tid and vnt_rns_id = $rid ";
+	}
+	$sql .= " ORDER BY $sidx $sord LIMIT $start, $limit";
+	$result = db_query($sql);
+
+	// constructing a JSON
+	$responce->page = $page;
+	$responce->total = $total_pages;
+	$responce->records = $count;
+	$i = 0;
+
+	if ($result != null)
+	{
+		if ($type == 'bot')
+		{
+			while($row = db_fetch_array($result)) {
+				$responce->rows[$i]['id']=$row[bts_id];
+				$responce->rows[$i]['cell']=array($row[bts_id],$row[bts_name],$row[bts_version],$row[bts_description],($row[bts_enabled]==1?'Y':'N'),$row[bts_created],$row[bts_last_updated],$row[bts_path],$row[bts_file]);
+				$i++;
+			}
+		}
+		else if ($type == 'job')
+		{
+			while($row = db_fetch_array($result)) {
+				$responce->rows[$i]['id']=$row[jbs_id];
+				$responce->rows[$i]['cell']=array("", $row[jbs_id],$row[jbs_name],$row[jbs_description],($row[jbs_enabled]==1?'Y':'N'),$row[jbs_created],$row[jbs_last_updated],$row[jbs_path],$row[jbs_file],$row[jbs_dbname],$row[count]);
+				$i++;
+			}
+		}
+		else if ($type == 'task')
+		{
+			while($row = db_fetch_array($result)) {
+				$responce->rows[$i]['id']=$row[tsk_id];
+				$responce->rows[$i]['cell']=array($row[tsk_id],$row[tsk_name],$row[tsk_description],($row[tsk_enabled]==1?'Y':'N'),$row[tsk_created],$row[tsk_last_updated],$row[tsk_minute],$row[tsk_hour],$row[tsk_dom],$row[tsk_month],$row[tsk_dow],($row[tsk_running]==1?'Running':'Suspended'),$row[tsk_srv_id]);
+				$i++;
+			}
+		}
+		else if ($type == 'run')
+		{
+			while($row = db_fetch_array($result)) {
+				$responce->rows[$i]['id']=$row[rns_id];
+
+				$rns_result = '';
+				if ($row[rns_result]==0)
+				{
+					$rns_result = 'Failed';
+				}
+				else if ($row[rns_result]==1)
+				{
+					$rns_result = 'Resume Failed';
+				}
+				else if ($row[rns_result]==2)
+				{
+					$rns_result = 'Running';
+				}
+				else if ($row[rns_result]==3)
+				{
+					$rns_result = 'Success';
+				}
+				else if ($row[rns_result]==4)
+				{
+					$rns_result = 'Resume Success';
+				}
+				$responce->rows[$i]['cell']=array($row[rns_id],$row[rns_start],$row[rns_end],$row[rns_duration],$rns_result,$row[rns_srv_id]);
+				$i++;
+			}
+		}
+		else if ($type == 'event')
+		{
+				while($row = db_fetch_array($result)) {
+				$responce->rows[$i]['cell']=array($row[vnt_datetime],$row[vnt_subject],$row[vnt_detail],$row[vnt_severity]);
+				$i++;
+			}
+		}
+	}
+
+	db_set_active('default');
+	
+	// return the formated data
+	echo json_encode($responce);
+  }
+?>

@@ -1,0 +1,117 @@
+package com.boryi.bots.geoname;
+
+/**
+ * The location entity
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Yang Song
+ * @version 1.0
+ * @since September 2009
+ */
+public class GeoNameRegionEntity {
+    private String geonameId;
+    private String name;
+    private String lat;
+    private String lng;
+    private String[] alternateNames;
+    private String parrentId;
+    private String countryId;
+    private int level;
+
+    /**
+     * Constructor
+     */
+    public GeoNameRegionEntity()
+    {}
+
+
+    /**
+     * Constructor
+     * 
+     * @param geonameId Geoname Id
+     * @param name Locations name
+     * @param lat   Location latitude
+     * @param lng   Location longitude
+     * @param alternateNames    Location alternate names
+     * @param parentId  Location parent geoname id
+     * @param countryGeoId Location country id
+     */
+    public GeoNameRegionEntity(String geonameId, String name, String lat,
+                String lng, String[] alternateNames, String parentId, 
+                String countryId, int level)
+    {
+        this.geonameId = geonameId;
+        this.name = name;
+        this.lat = lat;
+        this.lng = lng;
+        this.alternateNames = alternateNames;
+        this.parrentId = parentId;
+        this.countryId = countryId;
+        this.level = level;
+    }
+
+    /**
+     * @return the geonameId
+     */
+    public String getGeonameId()
+    {
+        return geonameId;
+    }
+
+    /**
+     * @return the name
+     */
+    public String getName()
+    {
+        return name;
+    }
+
+    /**
+     * @return the lat
+     */
+    public String getLat()
+    {
+        return lat;
+    }
+
+    /**
+     * @return the lng
+     */
+    public String getLng()
+    {
+        return lng;
+    }
+
+    /**
+     * @return the alternateNames
+     */
+    public String[] getAlternateNames()
+    {
+        return alternateNames;
+    }
+
+    /**
+     * @return the parrentId
+     */
+    public String getParrentId()
+    {
+        return parrentId;
+    }
+
+    /**
+     * @return the countryId
+     */
+    public String getCountryId()
+    {
+        return countryId;
+    }
+
+    /**
+     * @return the level
+     */
+    public int getLevel()
+    {
+        return level;
+    }
+}

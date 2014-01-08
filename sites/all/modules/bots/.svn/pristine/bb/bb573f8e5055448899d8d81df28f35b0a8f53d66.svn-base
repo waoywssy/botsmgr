@@ -1,0 +1,96 @@
+package com.boryi.bots.usjobs.base;
+
+import java.util.ArrayList;
+
+/**
+ * Search criteria list
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Hang Su
+ * @version 1.0
+ * @since December 2009
+ */
+public class USJobsSearchCriteriaList
+{
+    private static USJobsSearchCriteriaList instance;
+    private ArrayList<USJobsSearchCriteriaEntity> searchCriterias;
+    
+    /**
+     * Constructor
+     */
+    public USJobsSearchCriteriaList(ArrayList<USJobsSearchCriteriaEntity> searchCriterias)
+    {
+        initialize();
+        
+        instance.searchCriterias = searchCriterias;
+    }
+    
+    
+    /**
+     * Gets singleton instance
+     * 
+     * @return  Singleton instance
+     */
+    public static USJobsSearchCriteriaList getInstance()
+    {       
+        return instance;
+    }
+    
+    
+    /**
+     * Gets a search criteria from the list with specified ID
+     * 
+     * @param id    Specified search criteria id
+     * @return      A search criteria entity in the list
+     */
+    public synchronized USJobsSearchCriteriaEntity getSearchCriteria(int id)
+    {
+        for (int i = 0; i < searchCriterias.size(); i++)
+        {
+            USJobsSearchCriteriaEntity el = searchCriterias.get(i);
+            if (el.getId() == id)
+            {
+                searchCriterias.remove(el);
+                return el;
+            }
+        }
+        
+        return null;
+    }
+    
+    
+    /**
+     * Gets the element at specified position in the list
+     * 
+     * @param i     Specified index of the elements in the list
+     * @return      Element at specified position in the list
+     */
+    public USJobsSearchCriteriaEntity get(int i)
+    {
+        return searchCriterias.get(i);
+    }
+    
+    
+    /**
+     * Gets number of elements in the list
+     * 
+     * @return  number of elements in the list
+     */
+    public int getSize()
+    {
+        return searchCriterias.size();
+    }
+    
+    
+    /**
+     * Initializes singleton object
+     */
+    private void initialize()
+    {
+        if (instance == null)
+        {
+            instance = this;
+        }
+    }
+}

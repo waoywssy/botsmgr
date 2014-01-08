@@ -1,0 +1,2 @@
+# regex to parse item desciption
+<p [^<]*description[^>]*>(?<Description>.*?)(</p)

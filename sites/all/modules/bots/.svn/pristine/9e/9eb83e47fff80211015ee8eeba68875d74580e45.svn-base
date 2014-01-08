@@ -1,0 +1,204 @@
+/****************************** 
+ * Login Panel 
+ ******************************/
+ .loginPanel {
+  background: #000;
+  color: black;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  width: 100%;
+  height: 100%;
+  min-width: 400px;
+  min-height: 180px;
+}
+
+.loginDialog {
+  margin: 10px;
+}
+
+.loginVerticalPanel {
+  margin: 10px;
+}
+
+.loginHorizontalPanel {
+  margin: 5px 0px 5px;
+}
+
+.loginLabel {
+  margin: 0px 10px 0px 0px;
+  width: 60px;
+  height: 30px;
+  text-align: right;
+}
+
+.loginTextBox {
+  width: 280px;
+  height: 25px;
+}
+
+.loginButton {
+  width: 80px;
+  height: 30px;
+}
+
+#loginResetButton {
+  margin: 0px 60px 0px 70px;
+}
+
+#loginMessageLabel {
+  color: black;
+  margin: 5px 0px 5px;
+}
+
+#loginErrorMessageLabel {
+  color: red;
+  margin: 5px 0px 5px;
+}
+
+/****************************** 
+ * Main Panel - width: 800px
+ ******************************/
+.mainPanel {
+  color: black;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  min-width: 780px;
+  min-height: 580px;
+  margin: 0px 10px 10px;
+}
+
+/****************************** 
+ * About Dialog 
+ ******************************/
+.aboutText {
+  width: 280px;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  padding: 10px;
+  text-align: left;
+  line-height: 25px;
+}
+
+.aboutOk {
+  width: 80px;
+  height: 30px;
+  margin-top: 10px;
+  margin-left: 100px; 
+}
+
+/****************************** 
+ * Top Panel  
+ ******************************/
+.topPanel {
+  width: 100%;
+  height: 90px;
+}
+
+.topPanelLinks a, .topPanelLinks a:visited {
+  color: black;
+}
+
+.topPanelInfo {
+  position: relative;
+  left: 100px;
+  margin-top: 10px
+}
+
+.topPanelLogo {
+  position: absolute;
+}
+
+/****************************** 
+ * Left Panel - Menu
+ ******************************/
+.leftPanel {
+  font-size: 14px;
+  border: solid black 1px;
+}
+
+.leftPanelTopMenuItem {
+  vertical-align: middle;
+  margin-left: 5px;
+}
+
+/****************************** 
+ * Central Panel - Tabs, Pagination, Lists
+ ******************************/
+.centralPanel {
+  border: solid black 1px;
+  width: 1px;
+  height: 1px;
+  min-width: 647px;
+  min-height: 494px;
+}
+
+.centralPanel a, .centralPanel a:visited {
+  color: black;
+}
+
+.centralPanelOption {
+  background: #D2E6F3;
+}
+
+.centralPanelTable {
+  cursor: pointer;
+}
+
+.centralPanelTableHeader {
+  background: #DAC677;
+  font-weight: bold;
+}
+
+.centralPanelTableRowOdd {
+  background: white;
+}
+
+.centralPanelTableRowEven {
+  background: #eee;
+}
+
+/****************************** 
+ * Editable Dialog
+ ******************************/
+.editDialogInner {
+  border: solid black 1px;
+  padding: 5px;
+  margin: 5px 10px 5px;
+  width: 1px;
+  height: 1px;
+  min-width: 400px;
+  min-height: 300px;
+}
+
+.editDialogBottomPanel {
+  padding: 5px;
+  margin: 5px 10px 10px;
+}
+
+.editDialogButton {
+  padding: 5px 8px 5px;
+}
+
+/****************************** 
+ * Bot Dialog
+ ******************************/
+.botDialogFile {
+  width: 280px;
+}
+
+/****************************** 
+ * Other
+ ******************************/
+.uploadFileProcessingBarBack, .uploadFileProcessingBarFront {
+  width: 100px;
+  height: 10px;
+}
+
+.uploadFileProcessingBarBack {
+  background: while;
+  border: solid black 1px;
+}
+
+.uploadFileProcessingBarFront {
+  background: blue;
+}

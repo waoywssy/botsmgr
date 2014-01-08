@@ -1,0 +1,187 @@
+package com.boryi.bots.bestbuy;
+
+import com.boryi.bots.base.*;
+import java.io.UnsupportedEncodingException;
+import java.sql.CallableStatement;
+import java.sql.SQLException;
+import java.util.Date;
+
+/**
+ * BestBuy database access object
+ *
+ * <p><strong>Copyright 2010 - 2018 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Yang Song
+ * @version 1.0
+ * @since December 2010
+ */
+public final class BestBuyDao extends BotDao
+{
+    public BestBuyDao() throws Exception
+    {
+    }
+
+    
+    /**
+     * Save products information into database
+     * 
+     * @param products
+     * @param runId
+     * @param runDate
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     * @throws InstantiationException
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     * @throws InterruptedException
+     */
+    public void saveProducts(ProductsCollection products)
+            throws SQLException, ClassNotFoundException,
+            InstantiationException, InstantiationException,
+            IllegalAccessException, InterruptedException,
+            UnsupportedEncodingException
+    {
+        CallableStatement cs = null;
+        int classId = products.getClassId();
+        int count = products.getProducts().size();
+
+        for (int i = 0; i < count; i++)
+        {
+            Product item = (Product)products.getProducts().get(i);
+           
+            int retry = 0;
+            boolean failed = true;
+            while (failed)
+            // database connection failure, then retry
+            {
+                try
+                {
+                    if (classId == 1)
+                    {
+                        cs = localProcedures.get("save_tv");
+                        
+                        cs.setInt(1, item.getCategoryId());
+                        cs.setBytes(2, item.getBrand().getBytes("UTF8"));
+                        cs.setBytes(3, item.getModel().getBytes("UTF8"));
+                        cs.setLong(4, item.getSku());
+                        cs.setBytes(5, item.getTitle().getBytes("UTF8"));
+                        cs.setBytes(6, ((TV)item).getResolution().getBytes("UTF8"));
+                        cs.setBytes(7, ((TV)item).getRefreshRate().getBytes("UTF8"));
+                        cs.setBoolean(8, ((TV)item).isInternetConnected());
+                        cs.setBoolean(9, ((TV)item).is3D());
+                        cs.setBytes(10, ((TV)item).getSize().getBytes("UTF8"));
+                        cs.setBigDecimal(11, ((TV)item).getSalePrice());
+                        cs.setBigDecimal(12, ((TV)item).getPrice());
+                        cs.setInt(13, BotRunEntity.getInstance().getRunId());
+                        cs.setObject(14, new Date(BotRunEntity.getInstance().getRunDate()));
+                        cs.setBytes(15, ((TV)item).getUrl().getBytes("UTF8"));
+                    }
+                    else if (classId == 2)
+                    {
+                        cs = localProcedures.get("save_computer");
+
+                        cs.setInt(1, item.getCategoryId());
+                        cs.setBytes(2, item.getBrand().getBytes("UTF8"));
+                        cs.setBytes(3, item.getModel().getBytes("UTF8"));
+                        cs.setLong(4, item.getSku());
+                        cs.setBytes(5, item.getTitle().getBytes("UTF8"));
+                        cs.setBytes(6, ((Computer)item).getProcessor().getBytes("UTF8"));
+                        cs.setBytes(7, ((Computer)item).getMemory().getBytes("UTF8"));
+                        cs.setBytes(8, ((Computer)item).getHardDiskSize().getBytes("UTF8"));
+                        cs.setBytes(9, ((Computer)item).getColor().getBytes("UTF8"));
+                        cs.setBytes(10, ((Computer)item).getDisplay().getBytes("UTF8"));
+                        cs.setBytes(11, ((Computer)item).getOs().getBytes("UTF8"));
+                        cs.setBytes(12, ((Computer)item).getDescription().getBytes("UTF8"));
+                        cs.setBigDecimal(13, ((Computer)item).getSalePrice());
+                        cs.setBigDecimal(14, ((Computer)item).getPrice());
+                        cs.setInt(15, BotRunEntity.getInstance().getRunId());
+                        cs.setObject(16, new Date(BotRunEntity.getInstance().getRunDate()));
+                        cs.setBytes(17, ((Computer)item).getUrl().getBytes("UTF8"));
+                    }
+                    else if (classId == 3)
+                    {
+                        cs = localProcedures.get("save_hdd");
+                        
+                        cs.setInt(1, item.getCategoryId());
+                        cs.setBytes(2, item.getBrand().getBytes("UTF8"));
+                        cs.setBytes(3, item.getModel().getBytes("UTF8"));
+                        cs.setLong(4, item.getSku());
+                        cs.setBytes(5, item.getTitle().getBytes("UTF8"));
+                        cs.setBytes(6, ((HDD)item).getCapacity().getBytes("UTF8"));
+                        cs.setBytes(7, ((HDD)item).getType().getBytes("UTF8"));
+                        cs.setBigDecimal(8, ((HDD)item).getSalePrice());
+                        cs.setBigDecimal(9, ((HDD)item).getPrice());
+                        cs.setInt(10, BotRunEntity.getInstance().getRunId());
+                        cs.setObject(11, new Date(BotRunEntity.getInstance().getRunDate()));
+                        cs.setBytes(12, ((HDD)item).getUrl().getBytes("UTF8"));
+                    }
+                    cs.execute();
+
+                    failed = false;
+                }
+                catch (SQLException sex)
+                {
+                    if (retry < BotConfig.getInstance().getDbRetry().getRetry())
+                    {
+                        BotDao.getInstance().saveEvent(
+                            new BotEventEntity(BotEventSeverity.ERROR,
+                            "Error saving products",
+                            "Failed to save products: " //+ url
+                            + "; " + sex.toString(),
+                            System.currentTimeMillis()));
+
+                        prepareLocal();
+                        retry++;
+                    }
+                    else
+                    {
+                        throw sex;
+                    }
+                }
+            }
+        }
+    }
+
+
+    public void buildCheckList()
+        throws SQLException, ClassNotFoundException,
+        InstantiationException, InstantiationException,
+        IllegalAccessException, InterruptedException
+    {
+        CallableStatement cs = null;
+        int retry = 0;
+        boolean failed = true;
+        while (failed)
+            // database connection failure, then retry
+        {
+            try
+            {
+                cs = localProcedures.get("build_checklist");
+                cs.setInt(1, BotRunEntity.getInstance().getJobId());
+                cs.setInt(2, BotRunEntity.getInstance().getTaskId());
+                cs.execute();
+
+                failed = false;
+            }
+            catch (SQLException sex)
+            {
+                if (retry < BotConfig.getInstance().getDbRetry().getRetry())
+                {
+                    BotDao.getInstance().saveEvent(
+                        new BotEventEntity(BotEventSeverity.ERROR,
+                        "Error building checklists",
+                        "Failed to build checklists: " //+ url
+                        + "; " + sex.toString(),
+                        System.currentTimeMillis()));
+
+                    prepareLocal();
+                    retry++;
+                }
+                else
+                {
+                    throw sex;
+                }
+            }
+        }
+    }
+}

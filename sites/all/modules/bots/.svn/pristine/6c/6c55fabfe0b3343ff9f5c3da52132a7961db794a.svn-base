@@ -1,0 +1,140 @@
+package com.boryi.bots.usjobs.base;
+
+import com.boryi.bots.base.BotDataEntity;
+
+/**
+ * Search criteria entity
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Hang Su
+ * @version 1.0
+ * @since December 2009
+ */
+public class USJobsSearchCriteriaEntity extends BotDataEntity
+{
+    private int id;
+    private USJobsKeywordsEntity keywords;
+    private USJobsLocationEntity location;
+    private int miles;
+    private int jobsPerPage;
+    private int currentPage;
+    
+    
+    /**
+     * Constructor
+     * 
+     * @param keywords  Keywords-Excluded words pair to be searched for jobs
+     * @param location  Locations to be searched for jobs
+     * @param miles     Limited miles between the jobs location and searched location
+     */
+    public USJobsSearchCriteriaEntity(int id, 
+                                      USJobsKeywordsEntity keywords, 
+                                      USJobsLocationEntity location, 
+                                      int miles)
+    {
+        this.id = id;
+        this.keywords = keywords;
+        this.location = location;
+        this.miles = miles;
+    }
+
+    
+    /**
+     * Gets Keywords-Excluded words pair
+     * 
+     * @return  Keywords-Excluded words pair to be searched for jobs
+     */
+    public USJobsKeywordsEntity getKeywords() 
+    {
+        return keywords;
+    }
+
+    /**
+     * Gets location
+     * 
+     * @return  Locations to be searched for jobs
+     */
+    public USJobsLocationEntity getLocation() 
+    {
+        return location;
+    }
+
+    /**
+     * Gets miles
+     * 
+     * @return  Limited miles between the jobs location and searched location
+     */
+    public int getMiles() 
+    {
+        return miles;
+    }
+    
+    /**
+     * Gets id of this search criteria
+     * 
+     * @return id of this search criteria
+     */
+    public int getId()
+    {
+        return id;
+    }
+
+    /**
+     * Gets number of jobs displayed on each listing page
+     * 
+     * @return  number of jobs displayed on each listing page
+     */
+    public int getJobsPerPage() 
+    {
+        return jobsPerPage;
+    }
+    
+    
+    /**
+     * Sets number of jobs displayed on each listing page
+     * 
+     * @param jobsPerPage number of jobs displayed on each listing page
+     */
+    public void setJobsPerPage(int jobsPerPage)
+    {
+        this.jobsPerPage = jobsPerPage;
+    }
+    
+
+    /**
+     * Gets current page number
+     * 
+     * @return  Current page number
+     */
+    public int getCurrentPage() 
+    {
+        return currentPage;
+    }
+    
+    
+    /**
+     * Sets current page number
+     * 
+     * @param currentPage   Current page number
+     */
+    public void setCurrentPage(int currentPage)
+    {
+        this.currentPage = currentPage;
+    }
+    
+    
+    @Override
+    public String toString()
+    {
+        return "Search criteria Id: " + id
+                + ", Radius: " + miles
+                + ", Keywords-Excluded words Id: " + keywords.getId()
+                + ", Keywords: " + keywords.getKeywords()
+                + ", Excluded words: " + keywords.getExcludedWords()
+                + ", Location-Radius Id: " + location.getId()
+                + ", City: " + location.getCity()
+                + ", State: " + location.getState()
+                + ", Zipcode: " + location.getZipcode();
+    }
+}

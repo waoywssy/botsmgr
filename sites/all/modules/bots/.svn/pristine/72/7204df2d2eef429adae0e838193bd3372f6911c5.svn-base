@@ -1,0 +1,3 @@
+#get total count
+<div[^>]{0,9999}?showing[^>]*>\s*<strong[^>]*>\s* (\d*) \s* - \s*(\d+) \s* </strong[^>]*>
+      \s*  of  \s* <strong[^>]*> \s*  (\d+)

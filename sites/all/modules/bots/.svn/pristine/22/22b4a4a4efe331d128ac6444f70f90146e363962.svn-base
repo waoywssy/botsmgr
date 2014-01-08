@@ -1,0 +1,147 @@
+package com.boryi.bots.usjobs.base;
+
+import java.sql.Timestamp;
+
+import com.boryi.bots.base.BotDataEntity;
+
+/**
+ * Job entity
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Hang Su
+ * @version 1.0
+ * @since December 2009
+ */
+public class USJobsJobEntity extends BotDataEntity
+{
+    private int siteId;
+    private String jobId;
+    private Timestamp datePosted;
+    private String title;
+    private String jobUrl;
+    private String company;
+    private int miles;
+    private USJobsLocationEntity location;
+    
+    
+    /**
+     * Default constructor
+     */
+    public USJobsJobEntity()
+    {
+    }
+    
+    
+    /**
+     * Constructor
+     * 
+     * @param siteId        Id of the site from which the job data was collected
+     * @param jobId         Jobs id on the site
+     * @param datePosted    Date and time when this job was posted
+     * @param title         Job title
+     * @param jobUrl        Job detail page url
+     * @param company       Company who supplies this job
+     * @param miles         Miles far from the location
+     * @param location      Jobs location
+     */
+    public USJobsJobEntity(int siteId, 
+                           String jobId, 
+                           Timestamp datePosted, 
+                           String title,
+                           String jobUrl,
+                           String company,
+                           int miles,
+                           USJobsLocationEntity location)
+    {
+        this.siteId = siteId;
+        this.jobId = jobId;
+        this.datePosted = datePosted;
+        this.title = title;
+        this.jobUrl = jobUrl;
+        this.company = company;
+        this.miles = miles;
+        this.location = location;
+    }
+    
+
+    /**
+     * Gets site id
+     * 
+     * @return  Id of the site from which the job data was collected
+     */
+    public int getSiteId() 
+    {
+        return siteId;
+    }
+
+    /**
+     * Gets job id
+     * 
+     * @return  Jobs id on the site
+     */
+    public String getJobId() 
+    {
+        return jobId;
+    }
+
+    /**
+     * Gets date when this job was posted
+     * 
+     * @return  Date and time when this job was posted
+     */
+    public Timestamp getDatePosted() 
+    {
+        return datePosted;
+    }
+
+    /**
+     * Gets jobs title
+     * 
+     * @return  Job title
+     */
+    public String getTitle() 
+    {
+        return title;
+    }
+
+    /**
+     * Gets jobs url
+     * 
+     * @return  Job detail page url
+     */
+    public String getJobUrl() 
+    {
+        return jobUrl;
+    }
+
+    /**
+     * Gets company
+     * 
+     * @return  Company who supplies this job
+     */
+    public String getCompany() 
+    {
+        return company;
+    }
+
+    /**
+     * Gets miles
+     * 
+     * @return  Miles far from the location
+     */
+    public int getMiles() 
+    {
+        return miles;
+    }
+
+    /**
+     * Gets location
+     * 
+     * @return  Jobs location
+     */
+    public USJobsLocationEntity getLocation() 
+    {
+        return location;
+    }
+}

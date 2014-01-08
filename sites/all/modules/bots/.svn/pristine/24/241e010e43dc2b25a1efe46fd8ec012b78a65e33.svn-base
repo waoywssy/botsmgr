@@ -1,0 +1,190 @@
+package com.boryi.bots.hnrcsc;
+
+/**
+ * The country entity
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Yang Song
+ * @version 1.0
+ * @since September 2009
+ */
+public class HnrcscCompanyEntity {
+    private int id;
+    private String name;
+    private String phoneNumber;
+    private String fax;
+
+    private String contactor;
+    private String zipcode;
+    private String homepage;
+    private String email;
+    private String address;
+
+    private String type;
+    private String tradeType;
+    private String employeeCount;
+    private String regCapital;
+
+    private String introduction;
+
+    /**
+     * Constructor
+     *
+     * @param id            the company id from the site
+     * @param name          the name of the company
+     * @param phoneNumber   the phone number
+     * @param fax           the fax of the company
+     * @param contactor     the contactor of the company
+     * @param zipcode       the zipcode of the company
+     * @param homepage      the homepage url of the company
+     * @param email         the email address of the company
+     * @param address       the address of the company
+     * @param type          the type of the company
+     * @param tradeType     the trade type of the company
+     * @param employeeCount the employee count of the company
+     * @param regCapital    the register capital of the company
+     * @param introduction  the introduction of the company
+     */
+    public HnrcscCompanyEntity(int id, String name, String phoneNumber, String fax,
+            String contactor, String zipcode, String homepage, String email,
+            String address, String type, String tradeType, String employeeCount,
+            String regCapital, String introduction)
+    {
+        this.id = id;
+        this.name = name;
+        this.phoneNumber = phoneNumber;
+        this.fax = fax;
+        this.contactor = contactor;
+        this.zipcode = zipcode;
+        this.homepage = homepage;
+        this.email = email;
+        this.address = address;
+        this.type = type;
+        this.tradeType = tradeType;
+        this.employeeCount = employeeCount;
+        this.regCapital = regCapital;
+        this.introduction = introduction;
+    }
+
+
+
+    /**
+     * Constructor
+     */
+    public HnrcscCompanyEntity()
+    {
+    }
+
+    /**
+     * @return the id
+     */
+    public int getId()
+    {
+        return id;
+    }
+
+    /**
+     * @return the name
+     */
+    public String getName()
+    {
+        return name;
+    }
+
+    /**
+     * @return the phoneNumber
+     */
+    public String getPhoneNumber()
+    {
+        return phoneNumber;
+    }
+
+    /**
+     * @return the fax
+     */
+    public String getFax()
+    {
+        return fax;
+    }
+
+    /**
+     * @return the contactor
+     */
+    public String getContactor()
+    {
+        return contactor;
+    }
+
+    /**
+     * @return the zipcode
+     */
+    public String getZipcode()
+    {
+        return zipcode;
+    }
+
+    /**
+     * @return the homepage
+     */
+    public String getHomepage()
+    {
+        return homepage;
+    }
+
+    /**
+     * @return the email
+     */
+    public String getEmail()
+    {
+        return email;
+    }
+
+    /**
+     * @return the address
+     */
+    public String getAddress()
+    {
+        return address;
+    }
+
+    /**
+     * @return the type
+     */
+    public String getType()
+    {
+        return type;
+    }
+
+    /**
+     * @return the tradeType
+     */
+    public String getTradeType()
+    {
+        return tradeType;
+    }
+
+    /**
+     * @return the employeeCount
+     */
+    public String getEmployeeCount()
+    {
+        return employeeCount;
+    }
+
+    /**
+     * @return the regCapital
+     */
+    public String getRegCapital()
+    {
+        return regCapital;
+    }
+
+    /**
+     * @return the introduction
+     */
+    public String getIntroduction()
+    {
+        return introduction;
+    }
+}

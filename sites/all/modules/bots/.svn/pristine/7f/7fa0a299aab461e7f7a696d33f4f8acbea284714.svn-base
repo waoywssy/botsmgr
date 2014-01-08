@@ -1,0 +1,125 @@
+package com.boryi.bots.usjobs.base;
+
+import java.util.Hashtable;
+import java.util.Enumeration;
+
+import com.boryi.bots.base.BotConfig;
+
+/**
+ * USJobs Request parameters name-value pairs
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Hang Su
+ * @version 1.0
+ * @since December 2009
+ */
+public class USJobsRequestParameters extends Hashtable<String, String>
+{   
+    public static final String PARAM_NAME_KEYWORDS;
+    public static final String PARAM_NAME_EXCLUDED_WORDS;
+    public static final String PARAM_NAME_LOCATION;
+    public static final String PARAM_NAME_PAGE;
+    public static final String PARAM_NAME_RADIUS;
+    public static final String PARAM_NAME_JOBS_PER_PAGE;
+    
+    static
+    {
+        // Loads specified parameter names from configuration, names are for
+        // Keywords, Excluded Keywords, Location, Radius, Page
+        PARAM_NAME_KEYWORDS = BotConfig.getInstance().getParams().get("request.param.name.Keywords");
+        PARAM_NAME_EXCLUDED_WORDS = BotConfig.getInstance().getParams().get("request.param.name.ExcludedWords");
+        PARAM_NAME_LOCATION = BotConfig.getInstance().getParams().get("request.param.name.Location");
+        PARAM_NAME_RADIUS = BotConfig.getInstance().getParams().get("request.param.name.Radius");
+        PARAM_NAME_PAGE = BotConfig.getInstance().getParams().get("request.param.name.Page");
+        PARAM_NAME_JOBS_PER_PAGE = BotConfig.getInstance().getParams().get("request.param.name.JobsPerPage");
+    }
+    
+    /**
+     * Constructor
+     * 
+     * @param parameters    Parameter names loaded from database
+     */
+    public USJobsRequestParameters(Hashtable<String, String> parameters) throws Exception
+    {
+        super(parameters);
+        
+        // Loads parameter values from configuration
+        // Using request.param.XXX format
+        Enumeration<String> names = keys();
+        while (names.hasMoreElements())
+        {
+            String name = names.nextElement();
+            String value = BotConfig.getInstance().getParams().get("request.param." + name).trim();
+            put(name, value);
+        }
+    }
+    
+    
+    /**
+     * Populates POST web data
+     * 
+     * @param sc    Search criteria to be searched for
+     * @param page  number of the next page
+     * @return      POST web data
+     */
+    public Hashtable<String, String> populatePostWebData(USJobsSearchCriteriaEntity sc)
+    {
+        Hashtable<String, String> postWebData = (Hashtable<String, String>)clone();
+        
+        if (PARAM_NAME_KEYWORDS != null && postWebData.contains(PARAM_NAME_KEYWORDS))
+        {
+            postWebData.put(PARAM_NAME_KEYWORDS, sc.getKeywords().getKeywords());
+        }
+        if (PARAM_NAME_EXCLUDED_WORDS != null && postWebData.contains(PARAM_NAME_EXCLUDED_WORDS))
+        {
+            postWebData.put(PARAM_NAME_EXCLUDED_WORDS, sc.getKeywords().getExcludedWords());
+        }
+        if (PARAM_NAME_LOCATION != null && postWebData.contains(PARAM_NAME_LOCATION))
+        {
+            postWebData.put(PARAM_NAME_LOCATION, sc.getLocation().toString());
+        }
+        if (PARAM_NAME_RADIUS != null && postWebData.contains(PARAM_NAME_RADIUS))
+        {
+            postWebData.put(PARAM_NAME_RADIUS, String.valueOf(sc.getMiles()));
+        }
+        if (PARAM_NAME_RADIUS != null && postWebData.contains(PARAM_NAME_PAGE))
+        {
+            postWebData.put(PARAM_NAME_PAGE, String.valueOf(sc.getCurrentPage()));
+        }
+        if (PARAM_NAME_JOBS_PER_PAGE != null && postWebData.contains(PARAM_NAME_JOBS_PER_PAGE))
+        {
+            postWebData.put(PARAM_NAME_JOBS_PER_PAGE, String.valueOf(sc.getJobsPerPage()));
+        }
+        
+        return postWebData;
+    }
+    
+    
+    /**
+     * Populates GET web data
+     * 
+     * @param sc    Search criteria to be searched for
+     * @param page  number of the next page
+     * @return      GET web data
+     */
+    public String populateGetWebData(USJobsSearchCriteriaEntity sc)
+    {
+        String requestString = "";
+        
+        Hashtable<String, String> postWebData = populatePostWebData(sc);
+        
+        Enumeration<String> names = postWebData.keys();
+        while (names.hasMoreElements())
+        {
+            String name = names.nextElement();
+            String value = BotConfig.getInstance().getParams().get("request.param." + name);
+            
+            requestString += name + "=" + value + "&";
+        }
+        
+        requestString = requestString.substring(0, requestString.lastIndexOf("&") - 1);
+        
+        return requestString;
+    }
+}

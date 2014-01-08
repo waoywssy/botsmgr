@@ -1,0 +1,7 @@
+-- mysql -u root -p bot_geoname
+
+CREATE USER 'botmaster_geoname'@'localhost' IDENTIFIED BY 'p@ssw0rd';
+CREATE USER 'botuser_geoname'@'localhost' IDENTIFIED BY 'pass#word1';
+
+GRANT SELECT, INSERT, UPDATE, DELETE, EXECUTE ON bot_geoname.* TO 'botmaster_geoname'@'localhost' IDENTIFIED BY 'p@ssw0rd';
+GRANT SELECT, EXECUTE ON bot_geoname.* TO 'botuser_geoname'@'localhost' IDENTIFIED BY 'pass#word1';

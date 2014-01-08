@@ -1,0 +1,274 @@
+-- mysql -u root -p bot_hnrcsc
+
+DELIMITER $$
+--
+-- Procedures
+--
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `clear_checklist`(bid int, jid int, tid int)
+BEGIN
+    DELETE FROM `checklist_chc` WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid;
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `delete_qa_statistic`(brid int)
+BEGIN
+    DELETE FROM `qa_statistic_qst` WHERE qst_btrns_id = brid;
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `get_checkinglist`(bid int, jid int, tid int)
+BEGIN
+    SELECT chc_url AS url, chc_stage AS stage, chc_id AS id, chc_level as level FROM `checklist_chc` WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_status = 0;
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `get_checklist`(bid int, jid int, tid int)
+BEGIN
+    SELECT chc_url AS url, chc_stage AS stage, chc_id AS id, chc_level as level FROM `checklist_chc` WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_status = -1;
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `get_resumed_run`(bid int, jid int, tid int)
+BEGIN
+    IF EXISTS (SELECT * FROM `checklist_chc` WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_status <= 0) THEN
+        SELECT MAX(btrns_id) INTO @brid FROM bot_runs_btrns WHERE btrns_bts_id = bid AND btrns_jbs_id = jid AND btrns_tsk_id = tid;
+        SELECT @brid AS brid, btrns_rns_id AS rid, btrns_rns_start AS rstart FROM bot_runs_btrns WHERE btrns_id = @brid;
+    ELSE
+        SELECT 0 AS brid, 0 AS rid;
+    END IF;
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `insert_bot_run`(bid int, jid int, tid int, rid int, rstart datetime)
+BEGIN
+    IF NOT EXISTS (SELECT * FROM bot_runs_btrns WHERE btrns_bts_id = bid AND btrns_jbs_id = jid AND btrns_tsk_id = tid AND btrns_rns_id = rid) THEN
+        INSERT `bot_runs_btrns` (`btrns_bts_id`, `btrns_jbs_id`, `btrns_tsk_id`, `btrns_rns_id`, `btrns_rns_start`) VALUES (bid, jid, tid, rid, rstart);
+    END IF;
+    SELECT btrns_id AS id FROM bot_runs_btrns WHERE btrns_bts_id = bid AND btrns_jbs_id = jid AND btrns_tsk_id = tid AND btrns_rns_id = rid;
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `insert_checkitem`(bid int, jid int, tid int, url varchar(512), stage int, id int, level int)
+BEGIN
+    IF NOT EXISTS (SELECT * FROM checklist_chc WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_url = BINARY url) THEN
+        INSERT `checklist_chc` (`chc_bts_id`, `chc_jbs_id`, `chc_tsk_id`, `chc_url`, `chc_stage`, `chc_id`, `chc_status`, `chc_level`) VALUES (bid, jid, tid, url, stage, id, -1, level);
+    END IF;
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `insert_qa_statistic`(brid int, total int, total_distinct int, total_nulls int, average decimal(18,4), qmin decimal(18,4), qmax decimal(18,4))
+BEGIN
+    IF NOT EXISTS (SELECT * FROM qa_statistic_qst WHERE qst_btrns_id = brid) THEN
+        INSERT `qa_statistic_qst` (`qst_btrns_id`, `qst_is_valid`, `qst_total`, `qst_total_distinct`, `qst_total_nulls`, `qst_average`, `qst_min`, `qst_max`) VALUES (brid, 0, total, total_distinct, total_nulls, average, qmin, qmax);
+    END IF;
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `insert_web_statistic`(brid int, resume tinyint(1), wstart datetime, wend datetime, duration decimal(10,2), actual_duration decimal(10,2), page_hits_total int(8), kb_downloaded_total int(8), kb_uploaded_total int(8), b_request_header_total int(8), b_request_content_total int(8), b_response_header_total int(8), b_response_content_total int(8), max_page_hits_per_hour int(4), max_kb_per_hour int(4), threads int(4))
+BEGIN
+    IF NOT EXISTS (SELECT * FROM web_statistic_wbs WHERE wbs_btrns_id = brid AND wbs_start = wstart) THEN
+        INSERT `web_statistic_wbs` (`wbs_btrns_id`, `wbs_is_resume`, `wbs_start`, `wbs_end`, `wbs_duration`, `wbs_actual_duration`, `wbs_page_hits_total`, `wbs_kb_downloaded_total`, `wbs_kb_uploaded_total`, `wbs_b_request_header_total`, `wbs_b_request_content_total`, `wbs_b_response_header_total`, `wbs_b_response_content_total`, `wbs_max_page_hits_per_hour`, `wbs_max_kb_per_hour`, `wbs_threads`) VALUES (brid, resume, wstart, wend, duration, actual_duration, page_hits_total, kb_downloaded_total, kb_uploaded_total, b_request_header_total, b_request_content_total, b_response_header_total, b_response_content_total, max_page_hits_per_hour, max_kb_per_hour, threads);
+    END IF;
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `qa_analyze`()
+BEGIN
+
+	DECLARE influence_number INT DEFAULT 5;
+
+	DECLARE bot_run_id INT;
+	DECLARE last_valid_bot_run_id INT;
+
+	DECLARE last_valid_total_companies INT;
+	DECLARE last_valid_total_jobs INT;
+	DECLARE last_valid_total_null_cmp INT;
+	DECLARE last_valid_total_null_jbs INT;
+
+	DECLARE total_companies INT;
+	DECLARE total_jobs INT;
+	DECLARE total_null_cmp INT;
+	DECLARE total_null_jbs INT;
+
+	DECLARE is_valid BOOL DEFAULT 1;
+	DECLARE done INT DEFAULT 0;
+	DECLARE outputs VARCHAR(8000) DEFAULT 'Qa analyze result: ';
+
+	DECLARE c_invalid_items CURSOR FOR
+		SELECT `qst_btrns_id`, `qst_total_cmp`, `qst_total_jbs`, `qst_null_cmp`,
+			`qst_null_jbs`
+		FROM qa_statistic_qst WHERE qst_btrns_id > last_valid_bot_run_id AND qst_is_valid = 0 ORDER BY qst_btrns_id;
+
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+	IF (SELECT COUNT(*) FROM qa_statistic_qst WHERE qst_is_valid = 1) > 0 THEN
+		SELECT MAX(qst_btrns_id) INTO last_valid_bot_run_id FROM qa_statistic_qst WHERE qst_is_valid = 1;
+		IF (SELECT MAX(btrns_id) FROM bot_runs_btrns) > last_valid_bot_run_id THEN
+			OPEN c_invalid_items;
+
+			REPEAT
+				FETCH c_invalid_items INTO bot_run_id, total_companies, total_jobs, total_null_cmp, total_null_jbs;
+				IF NOT done THEN
+
+					SELECT `qst_btrns_id`, `qst_total_cmp`, `qst_total_jbs`, `qst_null_cmp`, `qst_null_jbs`
+					INTO last_valid_bot_run_id, last_valid_total_companies, last_valid_total_jobs, last_valid_total_null_cmp,
+						 last_valid_total_null_jbs
+					FROM qa_statistic_qst WHERE qst_btrns_id = last_valid_bot_run_id;
+
+					SET outputs = CONCAT(outputs, 'The bot runid : ', bot_run_id, '\n\r');
+
+					IF 100 * (ABS(last_valid_total_companies - total_companies)/last_valid_total_companies) > influence_number THEN
+						SET outputs = CONCAT(outputs, 'Companies varified over 5%\n\r');
+						SET is_valid = 0;
+					ELSE
+						SET outputs = CONCAT(outputs, 'Companies OK\n\r');
+					END IF;
+					IF 100 * (ABS(last_valid_total_jobs - total_jobs)/last_valid_total_jobs) > influence_number THEN
+						SET outputs = CONCAT(outputs, 'Jobs varified over 5%\n\r');
+						SET is_valid = 0;
+					ELSE
+						SET outputs = CONCAT(outputs, 'Jobs OK\n\r');
+					END IF;
+					IF (total_null_cmp > 0) THEN
+						SET outputs = CONCAT(outputs, 'Null company names\n\r');
+						SET is_valid = 0;
+					ELSE
+						SET outputs = CONCAT(outputs, 'No null company names\n\r');
+					END IF;
+					IF (total_null_jbs > 0) THEN
+						SET outputs = CONCAT(outputs, 'Null job names\n\r');
+						SET is_valid = 0;
+					ELSE
+						SET outputs = CONCAT(outputs, 'No null job names\n\r');
+					END IF;
+
+					IF is_valid THEN
+						UPDATE qa_statistic_qst SET qst_is_valid = 1 WHERE qst_btrns_id = bot_run_id;
+						SET last_valid_bot_run_id = bot_run_id;
+					ELSE
+						UPDATE qa_statistic_qst SET qst_is_valid = -1 WHERE qst_btrns_id = bot_run_id;
+					END IF;
+				END IF;
+				UNTIL done END REPEAT;
+			CLOSE c_invalid_items;
+		END IF;
+	END IF;
+	SELECT outputs;
+
+
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `qa_compute_statistic`()
+BEGIN
+DECLARE total_countries INT;
+	DECLARE total_companies INT;
+	DECLARE total_jobs INT;
+	DECLARE null_cmp_names INT;
+	DECLARE null_jbs_names INT;
+
+	DECLARE lastfound DATETIME;
+	DECLARE bot_run_id INT;
+
+	DECLARE done INT DEFAULT 0;
+
+
+	DECLARE c_bot_run_ids CURSOR FOR
+	SELECT btrns_id FROM bot_runs_btrns WHERE btrns_id > (SELECT IFNULL(MAX(qst_btrns_id), 0) FROM qa_statistic_qst);
+
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+	OPEN c_bot_run_ids;
+
+	REPEAT
+		FETCH c_bot_run_ids INTO bot_run_id;
+		IF NOT done THEN
+
+			IF bot_run_id > 0 THEN
+				SELECT btrns_rns_start INTO lastfound FROM bot_runs_btrns WHERE btrns_id = bot_run_id;
+
+				SELECT COUNT(*) INTO total_companies FROM companies_cmp WHERE cmp_last_found = lastfound;
+				SELECT COUNT(*) INTO total_jobs FROM jobs_jbs WHERE jbs_last_found = lastfound;
+
+				SELECT COUNT(*) INTO null_cmp_names FROM companies_cmp WHERE cmp_last_found = lastfound;
+				SELECT COUNT(*) INTO null_jbs_names FROM jobs_jbs WHERE jbs_last_found = lastfound;
+
+
+				INSERT INTO `bot_hnrcsc`.`qa_statistic_qst` (
+					`qst_btrns_id` ,
+					`qst_is_valid` ,
+					`qst_total_cmp` ,
+					`qst_total_jbs` ,
+					`qst_null_cmp` ,
+					`qst_null_jbs`
+				)
+				VALUES (bot_run_id, 0, total_companies, total_jobs, null_cmp_names, null_jbs_names);
+			END IF;
+		END IF;
+		UNTIL done END REPEAT;
+	CLOSE c_bot_run_ids;
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `save_company`(dwid INT(4), name varbinary(512),
+phone varbinary(256), fax varbinary(128), contactor varbinary(256), zipcode varbinary(128), homepage varbinary(256),
+email varbinary(256), address varbinary(512), type varbinary(256), trade_type varbinary(512), employee varbinary(256),
+register_capital varbinary(256), information varbinary(12000), rundate DATETIME)
+BEGIN
+
+INSERT INTO `companies_cmp` (`cmp_id` ,`cmp_dwid` ,`cmp_name` ,`cmp_tele` ,`cmp_fax` ,`cmp_contactor` ,
+	`cmp_zipcode` ,`cmp_homepage` ,`cmp_email` ,`cmp_address` ,`cmp_type` ,`cmp_trade_type` ,
+	`cmp_employee` ,`cmp_reg_capital` ,`cmp_info` ,`cmp_first_found` ,`cmp_last_found`)
+VALUES (NULL , dwid, name, phone , fax , contactor , zipcode , homepage , email , address , type ,
+	trade_type, employee , register_capital , information , rundate , rundate)
+on duplicate key update `cmp_name` = name, `cmp_tele` = phone, `cmp_fax` = fax ,`cmp_contactor` = contactor ,
+	`cmp_zipcode` = zipcode,`cmp_homepage` = homepage,`cmp_email` = email,`cmp_address` = address,
+	`cmp_type` = type, `cmp_trade_type` = trade_type , `cmp_employee` = employee ,
+	`cmp_reg_capital` = register_capital ,`cmp_info` = information , `cmp_last_found` = rundate;
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `save_company_job`(company int, job int, rundate datetime)
+BEGIN
+
+	INSERT INTO `bot_hnrcsc`.`company_job_cjb` (`cjb_cmp_id` ,`cjb_jbs_id` ,`cjb_first_found` ,`cjb_last_found`)
+	VALUES (company, job, rundate, rundate)
+	ON DUPLICATE KEY
+	UPDATE `cjb_last_found` = rundate;
+
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `save_job`(posid INT(4), name varbinary(128),
+counts varbinary(64), apartment varbinary(512), datefrom datetime, dateto datetime, type varbinary(512),
+education varbinary(32), location varbinary(256), salary varbinary(256), salary_detail varbinary(2000),
+phone varbinary(512), email varbinary(256), contactor varbinary(256), description varbinary(8000),
+requirement varbinary(8000), applyer_type varbinary(32), rundate DATETIME)
+BEGIN
+INSERT INTO `bot_hnrcsc`.`jobs_jbs` (`jbs_id` ,`jbs_name` ,`jbs_count` ,`jbs_apartment` ,`jbs_date` ,
+	`jbs_until` ,`jbs_posid` ,`jbs_type` ,`jbs_education` ,`jbs_location` ,`jbs_salary` ,`jbs_salary_detail` ,
+	`jbs_tele` ,`jbs_email` ,`jbs_contactor` ,`jbs_description` ,`jbs_requirement` ,`jbs_applyer_type` ,
+	`jbs_first_found` ,`jbs_last_found`)
+VALUES (NULL, name , counts , apartment , datefrom, dateto, posid, type , education ,
+	location , salary , salary_detail , phone , email , contactor ,
+	description , requirement , applyer_type , rundate, rundate)
+on duplicate key update `jbs_name` = name ,`jbs_count` = counts ,`jbs_apartment` = apartment ,
+`jbs_date` = datefrom ,`jbs_until` = dateto, `jbs_type` = type ,`jbs_education` = education ,
+`jbs_location` = location ,`jbs_salary` = salary ,`jbs_salary_detail` = salary_detail,
+`jbs_tele` = phone ,`jbs_email` = email ,`jbs_contactor` = contactor ,`jbs_description` = description ,
+`jbs_requirement` = requirement, `jbs_applyer_type` = applyer_type, `jbs_last_found` = rundate;
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `update_checkeditem`(bid int, jid int, tid int, url varchar(512))
+BEGIN
+    UPDATE `checklist_chc` SET chc_status = 1 WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_url = BINARY url;
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `update_checkingitem`(bid int, jid int, tid int, url varchar(512))
+BEGIN
+    UPDATE `checklist_chc` SET chc_status = 0 WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_url = BINARY url;
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `update_checklist_status`(id int, status int)
+BEGIN
+	UPDATE checklist_chc SET chc_status = status WHERE chc_id = id;
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `update_decheckingitems`(bid int, jid int, tid int)
+BEGIN
+    UPDATE `checklist_chc` SET chc_status = -1 WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_status = 0;
+END$$
+
+CREATE DEFINER=`botmaster_hnrcsc`@`localhost` PROCEDURE `update_qa_statistic`(brid int, valid tinyint(1))
+BEGIN
+    UPDATE `qa_statistic_qst` SET qst_is_valid = valid WHERE qst_btrns_id = brid;
+END$$
+
+DELIMITER ;

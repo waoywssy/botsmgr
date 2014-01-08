@@ -1,0 +1,94 @@
+package com.boryi.bots.usjobs.monster;
+
+import java.util.Date;
+import java.util.Hashtable;
+
+import com.boryi.bots.base.BotBase;
+import com.boryi.bots.base.BotRunEntity;
+import com.boryi.bots.base.BotConfig;
+import com.boryi.bots.base.BotChecklist;
+import com.boryi.bots.base.BotWebStatistic;
+import com.boryi.bots.base.BotThread;
+import com.boryi.bots.base.BotDateFormat;
+import com.boryi.bots.base.BotDateFormatType;
+
+import com.boryi.bots.usjobs.base.USJobsDao;
+import com.boryi.bots.usjobs.base.USJobsBase;
+
+/**
+ * Main class for the Monster bot
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Hang Su
+ * @version 1.0
+ * @since December 2009
+ */
+public class Main 
+{
+    /**
+     * Main
+     * 
+     * @param args the command line arguments
+     */
+    public static void main(String[] args)
+    {
+        Hashtable<String, Object> values;
+        try
+        {
+            values = BotBase.getArguments(args);
+        }
+        catch (Exception exArgs)
+        {
+            System.out.println("usage: ");
+            System.out.println();
+            System.out.println("java -jar botname serverId botId jobId taskId isResume config");
+            System.out.println("java -jar botname serverId botId jobId taskId config");
+            System.out.println("java -jar botname serverId botId jobId isResume config");
+            System.out.println("java -jar botname serverId botId jobId config");
+            return;
+        }
+
+        int serverId = ((Integer)values.get("serverId")).intValue();
+        int botId = ((Integer)values.get("botId")).intValue();
+        int jobId = ((Integer)values.get("jobId")).intValue();
+        int taskId = ((Integer)values.get("taskId")).intValue();
+        boolean isResume = ((Boolean)values.get("resume")).booleanValue();
+        String configFile = (String)values.get("config");
+
+        try
+        {
+            BotRunEntity run = new BotRunEntity(serverId, botId, jobId, taskId,
+                    System.currentTimeMillis(), isResume);
+
+            MonsterHttpHeaderEntity entity = new MonsterHttpHeaderEntity();
+            
+            BotConfig config = new BotConfig(configFile);
+
+            USJobsDao usjobsDao = new USJobsDao();
+            ((USJobsDao)USJobsDao.getInstance()).getRun();;
+            
+            BotChecklist checklist = new BotChecklist();
+            BotWebStatistic webStatistic = new BotWebStatistic();
+
+            BotThread botThread = new BotThread();
+
+            for (int i = 0; i < config.getWebThreads(); i++)
+            {
+                MonsterWebThread webThread = new MonsterWebThread();
+            }
+
+            MonsterSite site = new MonsterSite();
+            
+            USJobsBase base = new USJobsBase();
+        }
+        catch (Exception ex)
+        {
+            BotBase.logger.fatal("Bot Id: " + botId
+                    + " Job Id: " + jobId
+                    + " Task Id: " + taskId
+                    + BotDateFormat.getDateFormat(BotDateFormatType.MILLISECOND).format(new Date())
+                    + ex.toString());
+        }
+    }
+}

@@ -1,0 +1,7 @@
+# Gets table used to display job list
+
+\\"HtmlTableToRender\\" \s* : \s* \\"
+
+(.{0,999999}?)
+
+\\"\}

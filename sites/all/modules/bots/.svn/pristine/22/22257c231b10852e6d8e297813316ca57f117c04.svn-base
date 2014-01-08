@@ -1,0 +1,26 @@
+-- mysql -u root -p bot_geoname
+
+INSERT INTO `locations_lct` (`lct_gid`, `lct_parent_gid`, `lct_name`, `lct_url`, `lct_latitude`, `lct_longitude`, `lct_first_found`, `lct_last_found`, `lct_run_date`, `lct_cnt_gid`, `lct_level`) VALUES
+(408648, 366755, 'Al Jazirah', 'Al_Jazirah', 14.5000, 33.5000, '2009-09-21 14:17:30', '2009-09-21 14:17:30', '2009-09-21 14:17:30', 366755, 1),
+(408649, 366755, 'Al Qadarif', 'Al_Qadarif', 14.0000, 35.0000, '2009-09-21 14:17:30', '2009-09-21 14:17:30', '2009-09-21 14:17:30', 366755, 1);
+
+
+INSERT INTO `countries_cnt` (`cnt_name`, `cnt_code`, `cnt_url`, `cnt_gid`, `cnt_run_date`, `cnt_first_found`, `cnt_last_found`) VALUES
+('Andorra', 'AD', 'AND', 3041565, '2009-09-21 14:25:33', '2009-09-21 10:31:30', '2009-09-21 14:25:33'),
+('United Arab Emirates', 'AE', 'ARE', 290557, '2009-09-21 14:25:33', '2009-09-21 10:31:30', '2009-09-21 14:25:33'),
+('Afghanistan', 'AF', 'AFG', 1149361, '2009-09-21 14:25:33', '2009-09-21 10:31:30', '2009-09-21 14:25:33'),
+('Antigua and Barbuda', 'AG', 'ATG', 3576396, '2009-09-21 14:25:33', '2009-09-21 10:31:30', '2009-09-21 14:25:33');
+
+
+INSERT INTO `location_synonyms_lctsyn` (`lctsyn_lct_gid`, `lctsyn_name`, `lctsyn_firstfound`, `lctsyn_lastfound`) VALUES
+(408648, 'Al Jazirah', '2009-09-21 14:17:30', '2009-09-21 14:25:33'),
+(408648, 'Gezira', '2009-09-21 14:17:30', '2009-09-21 14:25:33'),
+(408649, 'Al Qadarif', '2009-09-21 14:17:30', '2009-09-21 14:25:33'),
+(408649, 'Gedaref', '2009-09-21 14:17:30', '2009-09-21 14:25:33');
+
+
+INSERT INTO `qa_statistic_qst` (`qst_btrns_id`, `qst_is_valid`, `qst_total_countries`, `qst_total_locations`, `qst_total_locations_with_alter_names`, `qst_min_country_gid`, `qst_max_country_gid`, `qst_min_location_gid`, `qst_max_location_gid`, `qst_min_location_lat`, `qst_min_location_lng`, `qst_max_location_lat`, `qst_max_location_lng`, `qst_min_country_level`, `qst_max_country_level`) VALUES
+(365, -1, 246, 246, 0, 49518, 6697173, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(366, -1, 246, 246, 0, 49518, 6697173, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+

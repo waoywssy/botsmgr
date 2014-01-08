@@ -1,0 +1,3 @@
+#regex to get product item section
+
+<div[^<]{0,9999}?info-side.{0,9999}?(?:<hr)

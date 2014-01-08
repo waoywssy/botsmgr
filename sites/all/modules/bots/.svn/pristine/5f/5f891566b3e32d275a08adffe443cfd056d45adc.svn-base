@@ -1,0 +1,153 @@
+-- mysql -u root -p bot_hnrcsc
+
+SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
+
+--
+-- Table structure for table `bot_runs_btrns`
+--
+
+CREATE TABLE IF NOT EXISTS `bot_runs_btrns` (
+  `btrns_id` int(4) NOT NULL auto_increment COMMENT 'Id of the run in the bot database',
+  `btrns_bts_id` int(4) NOT NULL COMMENT 'Id of the bot',
+  `btrns_jbs_id` int(4) NOT NULL COMMENT 'Id of the job of the bot',
+  `btrns_tsk_id` int(4) NOT NULL COMMENT 'Id of the task of the job of the bot. -1 means no task',
+  `btrns_rns_id` int(4) NOT NULL COMMENT 'Id of the run of the task of the job of the bot.',
+  `btrns_rns_start` datetime NOT NULL COMMENT 'Run date and time',
+  PRIMARY KEY  (`btrns_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Bot runs table' AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `checklist_chc`
+--
+
+CREATE TABLE IF NOT EXISTS `checklist_chc` (
+  `chc_bts_id` int(4) NOT NULL COMMENT 'Id of the bot',
+  `chc_jbs_id` int(4) NOT NULL COMMENT 'Id of the job of the bot',
+  `chc_tsk_id` int(4) NOT NULL COMMENT 'Id of the task of the job of the bot. -1 means no task',
+  `chc_url` varchar(328) collate utf8_unicode_ci NOT NULL COMMENT 'URL to be crawled by the run of the job of the bot',
+  `chc_stage` int(4) NOT NULL default '0' COMMENT 'Crawling stage of the URL, e.g. top category stage, sub-category stage, product stage, product detail stage ',
+  `chc_id` int(4) NOT NULL COMMENT 'Id related to the URL, e.g. product Id, category Id',
+  `chc_status` tinyint(1) NOT NULL default '-1' COMMENT '-1: not checked, 0: checking, 1: checked',
+  `chc_level` int(4) NOT NULL default '0',
+  PRIMARY KEY  (`chc_bts_id`,`chc_jbs_id`,`chc_tsk_id`,`chc_url`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Checklist table';
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `companies_cmp`
+--
+
+CREATE TABLE IF NOT EXISTS `companies_cmp` (
+  `cmp_id` int(4) NOT NULL auto_increment COMMENT 'Company id',
+  `cmp_dwid` int(4) NOT NULL COMMENT 'The id of the company from the site',
+  `cmp_name` varbinary(512) NOT NULL COMMENT 'Company name',
+  `cmp_tele` varbinary(256) default NULL COMMENT 'Company telephone number',
+  `cmp_fax` varbinary(128) default NULL COMMENT 'Company fax number',
+  `cmp_contactor` varbinary(256) default NULL COMMENT 'The contactor of the company',
+  `cmp_zipcode` varbinary(128) default NULL COMMENT 'The zipcode of the company',
+  `cmp_homepage` varbinary(256) default NULL COMMENT 'The homepage of the company',
+  `cmp_email` varbinary(256) default NULL COMMENT 'The email address of the company',
+  `cmp_address` varbinary(512) default NULL COMMENT 'The address of the company',
+  `cmp_type` varbinary(256) default NULL COMMENT 'The type of the company',
+  `cmp_trade_type` varbinary(512) default NULL COMMENT 'The type of trade of the company',
+  `cmp_employee` varbinary(256) default NULL COMMENT 'The employees'' amount of the company',
+  `cmp_reg_capital` varbinary(256) default NULL COMMENT 'The registered capital of the company',
+  `cmp_info` varbinary(12000) default NULL COMMENT 'The introduction of the company',
+  `cmp_first_found` datetime NOT NULL COMMENT 'The first date to find this company',
+  `cmp_last_found` datetime NOT NULL COMMENT 'The last date to find this company',
+  PRIMARY KEY  (`cmp_id`),
+  UNIQUE KEY `cmp_dwid_2` (`cmp_dwid`),
+  KEY `cmp_dwid` (`cmp_dwid`),
+  KEY `cmp_last_found` (`cmp_last_found`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table of the company' AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `company_job_cjb`
+--
+
+CREATE TABLE IF NOT EXISTS `company_job_cjb` (
+  `cjb_cmp_id` int(4) NOT NULL default '0' COMMENT 'Company id',
+  `cjb_jbs_id` int(4) NOT NULL default '0' COMMENT 'Job id',
+  `cjb_first_found` datetime default NULL COMMENT 'The first date and time that location name was found',
+  `cjb_last_found` datetime default NULL COMMENT 'The last date and time that location name was found',
+  PRIMARY KEY  (`cjb_cmp_id`,`cjb_jbs_id`),
+  KEY `cjb_last_found` (`cjb_last_found`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `jobs_jbs`
+--
+
+CREATE TABLE IF NOT EXISTS `jobs_jbs` (
+  `jbs_id` int(4) NOT NULL auto_increment COMMENT 'Job Id',
+  `jbs_name` varbinary(128) default NULL COMMENT 'Job name',
+  `jbs_count` varbinary(64) default NULL COMMENT 'The amound of employee this job needs',
+  `jbs_apartment` varbinary(512) default NULL COMMENT 'The apartment of the company hiring employee',
+  `jbs_date` datetime NOT NULL COMMENT 'From when to start to hire employee',
+  `jbs_until` datetime NOT NULL COMMENT 'Until when to stop hiring employee',
+  `jbs_posid` int(4) NOT NULL COMMENT 'The job id which can be parsed from the site',
+  `jbs_type` varbinary(512) default NULL COMMENT 'The type of the job(Full time or part time...)',
+  `jbs_education` varbinary(32) default NULL COMMENT 'The education qualification requirement',
+  `jbs_location` varbinary(256) default NULL COMMENT 'The working location ',
+  `jbs_salary` varbinary(256) default NULL COMMENT 'The salary',
+  `jbs_salary_detail` varbinary(2000) default NULL COMMENT 'The detail description of the salary',
+  `jbs_tele` varbinary(512) default NULL COMMENT 'The contact phone number',
+  `jbs_email` varbinary(256) default NULL COMMENT 'The contactor''s email',
+  `jbs_contactor` varbinary(256) default NULL COMMENT 'The contactor',
+  `jbs_description` varbinary(8000) default NULL COMMENT 'The description of the job',
+  `jbs_requirement` varbinary(8000) default NULL COMMENT 'The requirement of the job',
+  `jbs_applyer_type` varbinary(32) default NULL COMMENT 'People who can apply the job ',
+  `jbs_first_found` datetime NOT NULL COMMENT 'The first date to find this job',
+  `jbs_last_found` datetime NOT NULL COMMENT 'The last date to find this job',
+  PRIMARY KEY  (`jbs_id`),
+  KEY `jbs_posid` (`jbs_posid`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `qa_statistic_qst`
+--
+
+CREATE TABLE IF NOT EXISTS `qa_statistic_qst` (
+  `qst_btrns_id` int(4) NOT NULL COMMENT 'Id of the run in the bot database',
+  `qst_is_valid` tinyint(1) NOT NULL default '0' COMMENT 'Whether qa statistic is valid by comparing to the previous row.  It means whether data of the run is valid',
+  `qst_total_cmp` int(4) NOT NULL default '0' COMMENT 'Total number of the company',
+  `qst_total_jbs` int(4) NOT NULL default '0' COMMENT 'Total number of the jobs',
+  `qst_null_cmp` int(4) NOT NULL default '0' COMMENT 'Number of null values of a property',
+  `qst_null_jbs` int(11) NOT NULL default '0',
+  PRIMARY KEY  (`qst_btrns_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='QA statistic table';
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `web_statistic_wbs`
+--
+
+CREATE TABLE IF NOT EXISTS `web_statistic_wbs` (
+  `wbs_btrns_id` int(4) NOT NULL COMMENT 'Id of the run in the bot database',
+  `wbs_is_resume` tinyint(1) NOT NULL default '0' COMMENT 'Whether the run is resumed',
+  `wbs_start` datetime NOT NULL COMMENT 'Start time of web crawling',
+  `wbs_end` datetime NOT NULL COMMENT 'End time of web crawling',
+  `wbs_duration` decimal(10,2) NOT NULL default '0.00' COMMENT 'Duration of web crawling in hours',
+  `wbs_actual_duration` decimal(10,2) NOT NULL default '0.00' COMMENT 'Actual web traffic time in hours',
+  `wbs_page_hits_total` int(8) NOT NULL default '0' COMMENT 'Total page hits on the web site',
+  `wbs_kb_downloaded_total` int(8) NOT NULL default '0' COMMENT 'Total kilobytes downloaded from the web site, including headers and contents',
+  `wbs_kb_uploaded_total` int(8) NOT NULL default '0' COMMENT 'Total kilobytes uploaded to the web site, including headers and contents',
+  `wbs_b_request_header_total` int(8) NOT NULL default '0' COMMENT 'Total bytes of request headers',
+  `wbs_b_request_content_total` int(8) NOT NULL default '0' COMMENT 'Total bytes of request contents',
+  `wbs_b_response_header_total` int(8) NOT NULL default '0' COMMENT 'Total bytes of response headers',
+  `wbs_b_response_content_total` int(8) NOT NULL default '0' COMMENT 'Total bytes of response contents',
+  `wbs_max_page_hits_per_hour` int(4) NOT NULL default '1' COMMENT 'Maximum page hits per hour allowed to the web site',
+  `wbs_max_kb_per_hour` int(4) NOT NULL default '1' COMMENT 'Maximum kilobytes downloaded per hour allowed from the web site',
+  `wbs_threads` int(4) NOT NULL COMMENT 'Number of web crawling threads used',
+  PRIMARY KEY  (`wbs_btrns_id`,`wbs_start`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Web statistic table';

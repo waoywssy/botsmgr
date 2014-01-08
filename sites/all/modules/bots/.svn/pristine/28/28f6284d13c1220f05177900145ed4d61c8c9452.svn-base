@@ -1,0 +1,3 @@
+# Checks whether the page is from Monster.com
+
+"__type" \s* : \s* "Monster\.Seeker\.Services\.JobSearchMethods\.Search"

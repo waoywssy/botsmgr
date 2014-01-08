@@ -1,0 +1,11 @@
+-- mysql -u root -p bot_geoname
+
+CALL save_country(123456, 'Test Country', 'TCN', 'TC', '2009-01-01 12:00:00');
+
+CALL save_location(1234567, 'Test Location', 'Test_Location', 123456, 35.1259, -25.3658,'2009-01-01 12:00:00', 123456, 1);
+
+CALL save_location_alternate_name(1234567, 'Test alternate name', '2009-01-01 12:00:00');
+
+CALL qa_compute_statistic();
+
+CALL qa_analyze();

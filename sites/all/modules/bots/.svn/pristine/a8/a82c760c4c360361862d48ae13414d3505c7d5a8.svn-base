@@ -1,0 +1,222 @@
+package com.boryi.bots.hnrcsc;
+
+import com.boryi.bots.base.*;
+
+import java.sql.CallableStatement;
+import java.sql.SQLException;
+import java.util.Date;
+
+/**
+ * Hnrcsc database access object
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Yang Song
+ * @version 1.0
+ * @since August 2009
+ */
+public class HnrcscDao extends BotDao
+{
+    public HnrcscDao() throws Exception
+    {}
+
+    
+    /**
+     * Save company information
+     *
+     * @param company the company instance that retrieved from web
+     * 
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     * @throws InstantiationException
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     * @throws InterruptedException
+     */
+    public void saveCompany(HnrcscCompanyEntity company)
+            throws SQLException, ClassNotFoundException,
+            InstantiationException, InstantiationException,
+            IllegalAccessException, InterruptedException
+    {
+        CallableStatement cs = null;
+        int retry = 0;
+        boolean failed = true;
+        while (failed) // database connection failure, then retry
+        {
+            try
+            {
+                cs = localProcedures.get("save_company");
+
+                cs.setInt(1, Integer.valueOf(company.getId()));
+                cs.setBytes(2, company.getName().getBytes("UTF8"));
+                cs.setBytes(3, company.getPhoneNumber().getBytes("UTF8"));
+                cs.setBytes(4, company.getFax().getBytes("UTF8"));
+                cs.setBytes(5, company.getContactor().getBytes("UTF8"));
+                cs.setBytes(6, company.getZipcode().getBytes("UTF8"));
+                cs.setBytes(7, company.getHomepage().getBytes("UTF8"));
+                cs.setBytes(8, company.getEmail().getBytes("UTF8"));
+                cs.setBytes(9, company.getAddress().getBytes("UTF8"));
+                cs.setBytes(10, company.getType().getBytes("UTF8"));
+                cs.setBytes(11, company.getTradeType().getBytes("UTF8"));
+                cs.setBytes(12, company.getEmployeeCount().getBytes("UTF8"));
+                cs.setBytes(13, company.getRegCapital().getBytes("UTF8"));
+                cs.setBytes(14, company.getIntroduction().getBytes("UTF8"));
+                cs.setObject(15, new Date(BotRunEntity.getInstance().getRunDate()));
+
+                cs.execute();
+                failed = false;
+            }
+            catch (SQLException sex)
+            {
+                if (retry < 1)
+                {
+                    BotDao.getInstance().saveEvent(
+                        new BotEventEntity(BotEventSeverity.ERROR,
+                        "Error saving company",
+                        "Failed to save company: " + company.getId() + "; " + sex.toString(),
+                        System.currentTimeMillis()));
+
+                    prepareLocal();
+                    retry++;
+                }
+            }
+            catch (Exception ex)
+            {
+                BotDao.getInstance().saveEvent(
+                    new BotEventEntity(BotEventSeverity.ERROR,
+                    "Error saving company",
+                    "Failed to save company: " + company.getId() + "; " + ex.toString(),
+                    System.currentTimeMillis()));
+            }
+        }
+    }
+
+
+    /**
+     * Save the job instance into database
+     *
+     * @param job the job instance
+     *
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     * @throws InstantiationException
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     * @throws InterruptedException
+     */
+    public void saveJob(HnrcscJobEntity job)
+            throws SQLException, ClassNotFoundException,
+            InstantiationException, InstantiationException,
+            IllegalAccessException, InterruptedException
+    {
+        CallableStatement cs = null;
+        int retry = 0;
+        boolean failed = true;
+        while (failed) // database connection failure, then retry
+        {
+            try
+            {
+                cs = localProcedures.get("save_job");
+
+                cs.setInt(1, Integer.valueOf(job.getId()));
+                cs.setBytes(2, job.getName().getBytes("UTF8"));
+                cs.setBytes(3, job.getCount().getBytes("UTF8"));
+                cs.setBytes(4, job.getApartment().getBytes("UTF8"));
+                cs.setBytes(5, job.getDate().getBytes("UTF8"));
+                cs.setBytes(6, job.getUntil().getBytes("UTF8"));
+                cs.setBytes(7, job.getType().getBytes("UTF8"));
+                cs.setBytes(8, job.getEducation().getBytes("UTF8"));
+                cs.setBytes(9, job.getLocation().getBytes("UTF8"));
+                cs.setBytes(10, job.getSalary().getBytes("UTF8"));
+                cs.setBytes(11, job.getSalaryDetail().getBytes("UTF8"));
+                cs.setBytes(12, job.getPhone().getBytes("UTF8"));
+                cs.setBytes(13, job.getEmail().getBytes("UTF8"));
+                cs.setBytes(14, job.getContactor().getBytes("UTF8"));
+                cs.setBytes(15, job.getDescription().getBytes("UTF8"));
+                cs.setBytes(16, job.getRequirement().getBytes("UTF8"));
+                cs.setBytes(17, job.getApplyerType().getBytes("UTF8"));
+                cs.setObject(18, new Date(BotRunEntity.getInstance().getRunDate()));
+
+                cs.execute();
+
+                failed = false;
+            }
+            catch (SQLException sex)
+            {
+                if (retry < 1)
+                {
+                    BotDao.getInstance().saveEvent(
+                        new BotEventEntity(BotEventSeverity.ERROR,
+                        "Error saving job",
+                        "Failed to save job: " + job.getId() + "; " + sex.toString(),
+                        System.currentTimeMillis()));
+
+                    prepareLocal();
+                    retry++;
+                }
+            }
+            catch (Exception ex)
+            {
+                BotDao.getInstance().saveEvent(
+                    new BotEventEntity(BotEventSeverity.ERROR,
+                    "Error saving job",
+                    "Failed to save job: " + job.getId() + "; " + ex.toString(),
+                    System.currentTimeMillis()));
+            }
+        }
+    }
+
+
+    /**
+     * Save company id and job posid
+     * 
+     * @param companyId company id
+     * @param jobPosId  job id
+     * 
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     * @throws InstantiationException
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     * @throws InterruptedException
+     */
+    public void saveCompanyJob(int companyId, int jobPosId)
+            throws SQLException, ClassNotFoundException,
+            InstantiationException, InstantiationException,
+            IllegalAccessException, InterruptedException
+    {
+        CallableStatement cs = null;
+        int retry = 0;
+        boolean failed = true;
+        while (failed) // database connection failure, then retry
+        {
+            try
+            {
+                cs = localProcedures.get("save_company_job");
+
+                cs.setInt(1, companyId);
+                cs.setInt(2, jobPosId);
+                cs.setObject(3, new Date(BotRunEntity.getInstance().getRunDate()));
+
+                cs.execute();
+
+                failed = false;
+            }
+            catch (SQLException sex)
+            {
+                if (retry < 1)
+                {
+                    BotDao.getInstance().saveEvent(
+                        new BotEventEntity(BotEventSeverity.ERROR,
+                        "Error saving company job",
+                        "Failed to save company job: " + companyId + ":"
+                        + jobPosId +" ; " + sex.toString(),
+                        System.currentTimeMillis()));
+
+                    prepareLocal();
+                    retry++;
+                }
+            }
+        }
+    }
+}

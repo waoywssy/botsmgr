@@ -1,0 +1,287 @@
+package com.boryi.bots.usjobs.base;
+
+import java.sql.CallableStatement;
+import java.sql.SQLException;
+import java.sql.ResultSet;
+import java.sql.Types;
+import java.sql.Timestamp;
+import java.util.Hashtable;
+import java.util.ArrayList;
+
+import com.boryi.bots.base.BotDao;
+import com.boryi.bots.base.BotEventEntity;
+import com.boryi.bots.base.BotEventSeverity;
+import com.boryi.bots.base.BotRunEntity;
+
+/**
+ * USJobs database access object
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Hang Su
+ * @version 1.0
+ * @since December 2009
+ */
+public class USJobsDao extends BotDao
+{
+    /**
+     * Default constructor
+     * 
+     * @throws java.lang.Exception
+     */
+    public USJobsDao() throws Exception
+    {
+    }
+    
+    
+    /**
+     * Gets search criterias
+     * 
+     * @throws java.sql.SQLException
+     * @throws java.lang.ClassNotFoundException
+     * @throws java.lang.InstantiationException
+     * @throws java.lang.IllegalAccessException
+     * @throws java.lang.InterruptedException
+     */
+    public void getSearchCriterias()
+            throws SQLException, ClassNotFoundException,
+            InstantiationException, IllegalAccessException,
+            InterruptedException, Exception
+    {
+        ArrayList<USJobsSearchCriteriaEntity> searchCriterias = new ArrayList<USJobsSearchCriteriaEntity>();
+        ResultSet rs = null;
+        CallableStatement cs = null;
+        int retry = 0;
+        boolean failed = true;
+        while (failed) // database connection failure, then retry
+        {
+            try
+            {
+                cs = localProcedures.get("get_search_criteria");
+
+                cs.execute();
+                
+                rs = cs.getResultSet();
+                
+                while (rs.next())
+                {
+                    USJobsKeywordsEntity kwd = new USJobsKeywordsEntity(rs.getInt("kp_id"),
+                                                                        rs.getString("keywords"),
+                                                                        rs.getString("excludedWords"));
+                    
+                    USJobsLocationEntity lct = new USJobsLocationEntity(rs.getString("zipcode"),
+                                                                        rs.getString("city"),
+                                                                        rs.getString("state"),
+                                                                        rs.getInt("lr_id"));
+                    searchCriterias.add(new USJobsSearchCriteriaEntity(rs.getInt("id"), kwd, lct, rs.getInt("radius")));
+                    
+                }
+                
+                USJobsSearchCriteriaList list =  new USJobsSearchCriteriaList(searchCriterias);
+                
+                failed = false;
+            }
+            catch (SQLException sex)
+            {
+                if (retry < 1)
+                {
+                    BotDao.getInstance().saveEvent(
+                        new BotEventEntity(BotEventSeverity.ERROR,
+                        "Error getting search criterias",
+                        "Failed to get search criterias: " + sex.toString(),
+                        System.currentTimeMillis()));
+                    
+                    prepareLocal();
+                    retry++;
+                }
+                else
+                {
+                    throw sex;
+                }
+            }
+            finally
+            {
+                if (rs != null && !rs.isClosed())
+                {
+                    rs.close();
+                }
+            }
+        }
+    }
+    
+    /**
+     * Gets site information
+     * 
+     * @throws java.sql.SQLException
+     * @throws java.lang.ClassNotFoundException
+     * @throws java.lang.InstantiationException
+     * @throws java.lang.IllegalAccessException
+     * @throws java.lang.InterruptedException
+     * @throws java.lang.Exception
+     */
+    public void getSite(String siteName)
+            throws SQLException, ClassNotFoundException,
+            InstantiationException, IllegalAccessException,
+            InterruptedException, Exception
+    {
+        ResultSet rs = null;
+        CallableStatement cs = null;
+        int retry = 0;
+        boolean failed = true;
+        while (failed) // database connection failure, then retry
+        {
+            try
+            {
+                cs = localProcedures.get("get_site");
+                cs.setString(1, siteName);
+
+                cs.execute();
+                
+                rs = cs.getResultSet();
+                
+                if (rs.next())
+                {
+                    int siteId = rs.getInt("st_id");
+                    String site = rs.getString("st_site");
+                    String url = rs.getString("st_url");
+                    String httpMethod = rs.getString("st_http_method");
+                    String strParams = rs.getString("st_parameters");
+                    Hashtable<String, String> params = new Hashtable<String, String>();
+                    if (strParams.length() != 0)
+                    {
+                        String[] splitedParams = strParams.split(";");
+                        for (String param : splitedParams)
+                        {
+                            params.put(param, "");
+                        }
+                    }
+                    String strCookieNames = rs.getString("st_cookie_name");
+                    String strCookieValues = rs.getString("st_cookie_value");
+                    Hashtable<String, String> cookies = new Hashtable<String, String>();
+                    if (strCookieNames.length() != 0 && strCookieValues.length() != 0)
+                    {
+                        String[] cookieNames = strCookieNames.split(";");
+                        String[] cookieValues = strCookieValues.split(";");
+                        for (int i = 0; i < cookieNames.length; i++)
+                        {
+                            cookies.put(cookieNames[i], cookieValues[i]);
+                        }
+                    }
+                    
+                    USJobsSite st = new USJobsSite(siteId, site, url, httpMethod, params, cookies);
+                }
+                
+                failed = false;
+            }
+            catch (SQLException sex)
+            {
+                if (retry < 1)
+                {
+                    BotDao.getInstance().saveEvent(
+                        new BotEventEntity(BotEventSeverity.ERROR,
+                        "Error getting search criterias",
+                        "Failed to get search criterias: " + sex.toString(),
+                        System.currentTimeMillis()));
+                    
+                    prepareLocal();
+                    retry++;
+                }
+                else
+                {
+                    throw sex;
+                }
+            }
+            finally
+            {
+                if (rs != null && !rs.isClosed())
+                {
+                    rs.close();
+                }
+            }
+        }
+    }
+    
+    
+    /**
+     * Save jobs information
+     * 
+     * @throws java.sql.SQLException
+     * @throws java.lang.ClassNotFoundException
+     * @throws java.lang.InstantiationException
+     * @throws java.lang.IllegalAccessException
+     * @throws java.lang.InterruptedException
+     */
+    public synchronized void saveJob(USJobsJobEntity job, USJobsSearchCriteriaEntity searchCriteria, int miles, int siteId)
+            throws SQLException, ClassNotFoundException,
+            InstantiationException, IllegalAccessException,
+            InterruptedException
+    {
+        CallableStatement cs = null;
+        int retry = 0;
+        boolean failed = true;
+        while (failed) // database connection failure, then retry
+        {
+            try
+            {
+                cs = localProcedures.get("save_job");
+                
+                cs.setInt(1, searchCriteria.getId());
+                cs.setInt(2, siteId);
+                cs.setString(3, job.getJobId());
+                cs.setTimestamp(4, job.getDatePosted());
+                cs.setString(5, job.getTitle());
+                if (job.getJobUrl() == null)
+                {
+                    cs.setNull(6, Types.VARBINARY);
+                }
+                else
+                {
+                    cs.setString(6, job.getJobUrl());
+                }
+                cs.setString(7, job.getCompany());
+                if (miles == Integer.MIN_VALUE)
+                {
+                    cs.setNull(8, Types.INTEGER);
+                }
+                else
+                {
+                    cs.setInt(8, miles);
+                }
+                cs.setString(9, job.getLocation().getCity());
+                cs.setString(10, job.getLocation().getState());
+                if (job.getLocation().getZipcode() == null)
+                {
+                    cs.setNull(11, Types.CHAR);
+                }
+                else
+                {
+                    cs.setString(11, job.getLocation().getZipcode());
+                }
+                cs.setString(12, job.getLocation().getUrl());
+                cs.setTimestamp(13, new Timestamp(BotRunEntity.getInstance().getRunDate()));
+                
+                cs.execute();
+                
+                failed = false;
+            }
+            catch (SQLException sex)
+            {
+                if (retry < 1)
+                {
+                    BotDao.getInstance().saveEvent(
+                        new BotEventEntity(BotEventSeverity.ERROR,
+                        "Error saving jobs",
+                        "Failed to save job: " + sex.toString(),
+                        System.currentTimeMillis()));
+                    
+                    prepareLocal();
+                    retry++;
+                }
+                else
+                {
+                    throw sex;
+                }
+            }
+        }
+    }
+}

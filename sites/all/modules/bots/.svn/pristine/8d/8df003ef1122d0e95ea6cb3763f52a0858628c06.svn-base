@@ -1,0 +1,143 @@
+package com.boryi.bots.usjobs.base;
+
+import com.boryi.bots.base.BotDataEntity;
+
+/**
+ * Location entity
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Hang Su
+ * @version 1.0
+ * @since December 2009
+ */
+public class USJobsLocationEntity extends BotDataEntity
+{
+    private int id;
+    private String zipcode;
+    private String city;
+    private String state;
+    private String url;
+    
+    
+    /**
+     * Default constructor
+     */
+    public USJobsLocationEntity()
+    {
+    }
+    
+    
+    /**
+     * Constructor
+     * 
+     * @param zipcode   Zipcode of this location
+     * @param city      City of this location
+     * @param state     State of this location
+     */
+    public USJobsLocationEntity(String zipcode, String city, String state)
+    {
+        this.zipcode = zipcode;
+        this.city = city == null ? null: city.toLowerCase();
+        this.state = state == null ? null : state.toLowerCase();
+    }
+    
+    
+    /**
+     * Constructor
+     * 
+     * @param zipcode   Zipcode of this location
+     * @param city      City of this location
+     * @param state     State of this location
+     * @param id        Id of this location
+     */
+    public USJobsLocationEntity(String zipcode, String city, String state, int id)
+    {
+        this(zipcode, city, state);
+        this.id = id;
+    }
+    
+    
+    /**
+     * Constructor
+     * 
+     * @param zipcode   Zipcode of this location
+     * @param city      City of this location
+     * @param state     State of this location
+     * @param id        Id of this location
+     * @param url       Url of this location
+     */
+    public USJobsLocationEntity(String zipcode, String city, String state, int id, String url)
+    {
+        this(zipcode, city, state, id);
+        this.url = url;
+    }
+
+    
+    /**
+     * Gets Id
+     * 
+     * @return  Id of this location 
+     */
+    public int getId() 
+    {
+        return id;
+    }
+
+    /**
+     * Gets zipcode
+     * 
+     * @return  Zipcode of this location
+     */
+    public String getZipcode() 
+    {
+        return zipcode;
+    }
+
+    /**
+     * Gets city
+     * 
+     * @return  City of this location
+     */
+    public String getCity() 
+    {
+        return city;
+    }
+
+    /**
+     * Gets state
+     * 
+     * @return  State of this location
+     */
+    public String getState() 
+    {
+        return state;
+    }
+
+    /**
+     * Gets url
+     * 
+     * @return  Url of this location
+     */
+    public String getUrl() 
+    {
+        return url;
+    }
+
+    /**
+     * Sets url
+     * 
+     * @param url   Url of this location
+     */
+    public void setUrl(String url) 
+    {
+        this.url = url;
+    }
+    
+    
+    @Override
+    public String toString()
+    {
+        return city + " " + state + (zipcode == null ? "" : " " + zipcode);
+    }
+}

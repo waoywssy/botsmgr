@@ -1,0 +1,366 @@
+-- mysql -u root -p bot_geoname
+
+
+-- --------------------------------------------------------
+--
+-- Stored procedures for `checklist_chc`
+--
+
+DELIMITER //
+CREATE DEFINER=`botmaster_geoname`@`localhost` PROCEDURE `insert_checkitem`(bid int, jid int, tid int, url varchar(512), stage int, id int, level int)
+BEGIN
+    IF NOT EXISTS (SELECT * FROM checklist_chc WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_url = BINARY url) THEN
+        INSERT `checklist_chc` (`chc_bts_id`, `chc_jbs_id`, `chc_tsk_id`, `chc_url`, `chc_stage`, `chc_id`, `chc_status`, `chc_level`) VALUES (bid, jid, tid, url, stage, id, -1, level);
+    END IF;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster_geoname`@`localhost` PROCEDURE `update_checkingitem`(bid int, jid int, tid int, url varchar(512))
+BEGIN
+    UPDATE `checklist_chc` SET chc_status = 0 WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_url = BINARY url;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster_geoname`@`localhost` PROCEDURE `update_checkeditem`(bid int, jid int, tid int, url varchar(512))
+BEGIN
+    UPDATE `checklist_chc` SET chc_status = 1 WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_url = BINARY url;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster_geoname`@`localhost` PROCEDURE `get_checklist`(bid int, jid int, tid int)
+BEGIN
+    SELECT chc_url AS url, chc_stage AS stage, chc_id AS id, chc_level as level FROM `checklist_chc` WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_status = -1;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster_geoname`@`localhost` PROCEDURE `get_checkinglist`(bid int, jid int, tid int)
+BEGIN
+    SELECT chc_url AS url, chc_stage AS stage, chc_id AS id, chc_level as level FROM `checklist_chc` WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_status = 0;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster_geoname`@`localhost` PROCEDURE `clear_checklist`(bid int, jid int, tid int)
+BEGIN
+    DELETE FROM `checklist_chc` WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster_geoname`@`localhost` PROCEDURE `update_checklist_status`(id int, status int)
+BEGIN
+	UPDATE checklist_chc SET chc_status = status WHERE chc_id = id;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster_geoname`@`localhost` PROCEDURE `get_resumed_run`(bid int, jid int, tid int)
+BEGIN
+    IF EXISTS (SELECT * FROM `checklist_chc` WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_status <= 0) THEN
+        SELECT MAX(btrns_id) INTO @brid FROM bot_runs_btrns WHERE btrns_bts_id = bid AND btrns_jbs_id = jid AND btrns_tsk_id = tid;
+        SELECT @brid AS brid, btrns_rns_id AS rid, btrns_rns_start AS rstart FROM bot_runs_btrns WHERE btrns_id = @brid;
+    ELSE
+        SELECT 0 AS brid, 0 AS rid;
+    END IF;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster_geoname`@`localhost` PROCEDURE `update_decheckingitems`(bid int, jid int, tid int)
+BEGIN
+    UPDATE `checklist_chc` SET chc_status = -1 WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_status = 0;
+END;//
+
+
+-- --------------------------------------------------------
+--
+-- Stored procedures for `bot_runs_btrns`
+--
+
+DELIMITER //
+CREATE DEFINER=`botmaster_geoname`@`localhost` PROCEDURE `insert_bot_run`(bid int, jid int, tid int, rid int, rstart datetime)
+BEGIN
+    IF NOT EXISTS (SELECT * FROM bot_runs_btrns WHERE btrns_bts_id = bid AND btrns_jbs_id = jid AND btrns_tsk_id = tid AND btrns_rns_id = rid) THEN
+        INSERT `bot_runs_btrns` (`btrns_bts_id`, `btrns_jbs_id`, `btrns_tsk_id`, `btrns_rns_id`, `btrns_rns_start`) VALUES (bid, jid, tid, rid, rstart);
+    END IF;
+    SELECT btrns_id AS id FROM bot_runs_btrns WHERE btrns_bts_id = bid AND btrns_jbs_id = jid AND btrns_tsk_id = tid AND btrns_rns_id = rid;
+END;//
+
+
+-- --------------------------------------------------------
+--
+-- Stored procedures for `web_statistic_wbs`
+--
+
+DELIMITER //
+CREATE DEFINER=`botmaster_geoname`@`localhost` PROCEDURE `insert_web_statistic`(brid int, resume tinyint(1), wstart datetime, wend datetime, duration decimal(10,2), actual_duration decimal(10,2), page_hits_total int(8), kb_downloaded_total int(8), kb_uploaded_total int(8), b_request_header_total int(8), b_request_content_total int(8), b_response_header_total int(8), b_response_content_total int(8), max_page_hits_per_hour int(4), max_kb_per_hour int(4), threads int(4))
+BEGIN
+    IF NOT EXISTS (SELECT * FROM web_statistic_wbs WHERE wbs_btrns_id = brid AND wbs_start = wstart) THEN
+        INSERT `web_statistic_wbs` (`wbs_btrns_id`, `wbs_is_resume`, `wbs_start`, `wbs_end`, `wbs_duration`, `wbs_actual_duration`, `wbs_page_hits_total`, `wbs_kb_downloaded_total`, `wbs_kb_uploaded_total`, `wbs_b_request_header_total`, `wbs_b_request_content_total`, `wbs_b_response_header_total`, `wbs_b_response_content_total`, `wbs_max_page_hits_per_hour`, `wbs_max_kb_per_hour`, `wbs_threads`) VALUES (brid, resume, wstart, wend, duration, actual_duration, page_hits_total, kb_downloaded_total, kb_uploaded_total, b_request_header_total, b_request_content_total, b_response_header_total, b_response_content_total, max_page_hits_per_hour, max_kb_per_hour, threads);
+    END IF;
+END;//
+
+
+-- --------------------------------------------------------
+--
+-- Stored procedures for bot data
+--
+
+DELIMITER //
+CREATE DEFINER=`botmaster_geoname`@`localhost` PROCEDURE `save_location_alternate_name`(geoid int(4), name varchar(512), rundate datetime)
+BEGIN
+    SET NAMES 'UTF8';
+    IF NOT EXISTS (SELECT * FROM location_synonyms_lctsyn WHERE lctsyn_lct_gid = geoid AND lctsyn_name = binary name) THEN INSERT INTO location_synonyms_lctsyn VALUES(geoid, name, rundate,rundate); 
+    ELSE UPDATE location_synonyms_lctsyn SET lctsyn_lastfound = rundate;
+END IF;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster_geoname`@`localhost` PROCEDURE `save_location`( geoid int(4), name varchar(128) , url varchar(128), pgeoid int(4), lat decimal(8, 4), lng decimal(8, 4),  rundate char(19), country int, level int)
+BEGIN
+    INSERT INTO locations_lct VALUES(geoid, pgeoid, binary name, binary url, lat, lng, rundate, rundate, rundate, country, level) on duplicate key update lct_name = binary name, lct_url = binary url, lct_parent_gid = pgeoid, lct_latitude = lat, lct_longitude = lng, lct_last_found=rundate, lct_run_date = rundate, lct_cnt_gid = country, lct_level = level;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster_geoname`@`localhost` PROCEDURE `save_country`( geoid int(4), name varchar(128) , url char(3) , code char(2) , rundatetime char(19))
+BEGIN
+    INSERT INTO countries_cnt(cnt_name, cnt_code, cnt_url, cnt_gid, cnt_first_found, cnt_last_found, cnt_run_date) VALUES (name, code, url, geoid, rundatetime, rundatetime, rundatetime) on duplicate key update cnt_name = name, cnt_url = url, cnt_code = code, cnt_run_date = rundatetime, cnt_last_found = rundatetime;
+END;//
+
+
+-- --------------------------------------------------------
+--
+-- Stored procedures for `qa_statistic_qst`
+--
+
+DELIMITER //
+CREATE DEFINER=`botmaster_geoname`@`localhost` PROCEDURE `qa_analyze`()
+BEGIN
+	DECLARE influence_number INT DEFAULT 5;
+
+	DECLARE bot_run_id INT;
+	DECLARE last_valid_bot_run_id INT;
+
+	DECLARE last_valid_total_countries INT;
+	DECLARE last_valid_total_locations INT;
+	DECLARE last_valid_total_locations_with_alternames INT;
+
+	DECLARE last_valid_min_country_gid INT;
+	DECLARE last_valid_max_country_gid INT;
+	DECLARE last_valid_min_location_gid INT;
+	DECLARE last_valid_max_location_gid INT;
+
+	DECLARE last_valid_max_location_lng DECIMAL(8,4);
+	DECLARE last_valid_min_location_lng DECIMAL(8,4);
+	DECLARE last_valid_max_location_lat DECIMAL(8,4);
+	DECLARE last_valid_min_location_lat DECIMAL(8,4);
+
+	DECLARE last_valid_min_level INT;
+	DECLARE last_valid_max_level INT;
+
+	DECLARE total_countries INT;
+	DECLARE total_locations INT;
+	DECLARE total_locations_with_alternames INT;
+
+	DECLARE min_country_gid INT;
+	DECLARE max_country_gid INT;
+	DECLARE min_location_gid INT;
+	DECLARE max_location_gid INT;
+
+	DECLARE max_location_lng DECIMAL(8,4);
+	DECLARE min_location_lng DECIMAL(8,4);
+	DECLARE max_location_lat DECIMAL(8,4);
+	DECLARE min_location_lat DECIMAL(8,4);
+
+	DECLARE min_level INT;
+	DECLARE max_level INT;
+
+	DECLARE is_valid BOOL DEFAULT 1;
+	DECLARE done INT DEFAULT 0;
+	DECLARE outputs VARCHAR(8000) DEFAULT 'Qa analyze result: ';
+
+	DECLARE c_invalid_items CURSOR FOR
+		SELECT `qst_btrns_id`, `qst_total_countries`, `qst_total_locations`, `qst_total_locations_with_alter_names`,
+			`qst_min_country_gid`, `qst_max_country_gid`, `qst_min_location_gid`, `qst_max_location_gid`, `qst_min_location_lat` ,
+			`qst_min_location_lng`, `qst_max_location_lat`, `qst_max_location_lng`, `qst_min_country_level`, `qst_max_country_level` 
+		FROM qa_statistic_qst WHERE qst_btrns_id > last_valid_bot_run_id AND qst_is_valid = 0 ORDER BY qst_btrns_id;
+
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+	IF (SELECT COUNT(*) FROM qa_statistic_qst WHERE qst_is_valid = 1) > 0 THEN
+		SELECT MAX(qst_btrns_id) INTO last_valid_bot_run_id FROM qa_statistic_qst WHERE qst_is_valid = 1;
+		IF (SELECT MAX(btrns_id) FROM bot_runs_btrns) > last_valid_bot_run_id THEN
+			OPEN c_invalid_items;
+
+			REPEAT 
+				FETCH c_invalid_items INTO bot_run_id, total_countries, total_locations, total_locations_with_alternames, min_country_gid, 
+							max_country_gid, min_location_gid, max_location_gid, min_location_lat, min_location_lng, max_location_lat, max_location_lng, 
+							min_level, max_level;
+				IF NOT done THEN
+
+					SELECT `qst_btrns_id`, `qst_total_countries`, `qst_total_locations`, `qst_total_locations_with_alter_names`,
+					`qst_min_country_gid`, `qst_max_country_gid`, `qst_min_location_gid`, `qst_max_location_gid`, `qst_min_location_lat` ,
+					`qst_min_location_lng`, `qst_max_location_lat`, `qst_max_location_lng`, `qst_min_country_level`, `qst_max_country_level` 
+					INTO last_valid_bot_run_id, last_valid_total_countries, last_valid_total_locations, last_valid_total_locations_with_alternames, 
+						 last_valid_min_country_gid, last_valid_max_country_gid, last_valid_min_location_gid, last_valid_max_location_gid, 
+						 last_valid_min_location_lat, last_valid_min_location_lng, last_valid_max_location_lat, last_valid_max_location_lng, 
+						 last_valid_min_level, last_valid_max_level
+					FROM qa_statistic_qst WHERE qst_btrns_id = last_valid_bot_run_id;
+
+					SET outputs = CONCAT(outputs, 'The bot runid : ', bot_run_id, '\n\r');
+
+					IF 100 * (ABS(last_valid_total_countries - total_countries)/last_valid_total_countries) > influence_number THEN 
+						SET outputs = CONCAT(outputs, 'Countries varified over 5%\n\r');
+						SET is_valid = 0; 
+					ELSE 
+						SET outputs = CONCAT(outputs, 'Countries OK\n\r');
+					END IF;
+					IF 100 * (ABS(last_valid_total_locations - total_locations)/last_valid_total_locations) > influence_number THEN 
+						SET outputs = CONCAT(outputs, 'Locations varified over 5%\n\r');
+						SET is_valid = 0;
+					ELSE 
+						SET outputs = CONCAT(outputs, 'Locations OK\n\r'); 
+					END IF;
+					IF 100 * (ABS(last_valid_total_locations_with_alternames - total_locations_with_alternames)
+									/last_valid_total_locations_with_alternames) > influence_number THEN 
+						SET outputs = CONCAT(outputs, 'Locations with alternames varified over 5%\n\r');
+						SET is_valid = 0;
+					ELSE 
+						SET outputs = CONCAT(outputs, 'Alternames OK\n\r'); 
+					END IF;
+					IF NOT (min_country_gid > 0 AND max_country_gid > min_country_gid) THEN
+						SET outputs = CONCAT(outputs, 'Min/Max countries gid error\n\r');
+						SET is_valid = 0;
+					ELSE 
+						SET outputs = CONCAT(outputs, 'Country Geoname Id OK\n\r'); 
+					END IF;
+					IF NOT (min_location_gid > 0 AND max_location_gid > min_location_gid) THEN  
+						SET outputs = CONCAT(outputs, 'Min/Max locations gid error\n\r');
+						SET is_valid = 0;
+					ELSE 
+						SET outputs = CONCAT(outputs, 'Location Geoname Id OK\n\r'); 
+					END IF;
+					IF NOT (max_location_lng <= 180 AND max_location_lng > min_location_lng AND min_location_lng >= -180) THEN  
+						SET outputs = CONCAT(outputs, 'Min/Max location longitude error\n\r');
+						SET is_valid = 0;
+					ELSE 
+						SET outputs = CONCAT(outputs, 'Longitude OK\n\r');
+					END IF;
+					IF NOT (max_location_lat <= 180 AND max_location_lat > min_location_lat AND min_location_lat >= -180) THEN  
+						SET outputs = CONCAT(outputs, 'Min/Max location latitude error. max:', 
+								max_location_lat, ' min:', min_location_lat, '\n\r');
+						SET is_valid = 0;
+					ELSE 
+						SET outputs = CONCAT(outputs, 'Latitude OK\n\r'); 
+					END IF;
+					IF NOT (max_level > min_level AND min_level >= 0) THEN 
+						SET outputs = CONCAT(outputs, 'Min/Max countries level error\n\r');
+						SET is_valid = 0;
+					ELSE 
+						SET outputs = CONCAT(outputs, 'Country levels OK\n\r');
+					END IF;
+
+					IF is_valid THEN
+						UPDATE qa_statistic_qst SET qst_is_valid = 1 WHERE qst_btrns_id = bot_run_id;
+						SET last_valid_bot_run_id = bot_run_id;
+					ELSE
+						UPDATE qa_statistic_qst SET qst_is_valid = -1 WHERE qst_btrns_id = bot_run_id;
+					END IF;
+				END IF;
+				UNTIL done END REPEAT;
+			CLOSE c_invalid_items;
+		END IF;
+	END IF;
+	SELECT outputs;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster_geoname`@`localhost` PROCEDURE `qa_compute_statistic`()
+BEGIN
+    DECLARE total_countries INT;
+	DECLARE total_locations INT;
+	DECLARE total_locations_with_alternames INT;
+
+	DECLARE min_country_gid INT;
+	DECLARE max_country_gid INT;
+	DECLARE min_location_gid INT;
+	DECLARE max_location_gid INT;
+
+	DECLARE max_location_lng DECIMAL(8,4);
+	DECLARE min_location_lng DECIMAL(8,4);
+	DECLARE max_location_lat DECIMAL(8,4);
+	DECLARE min_location_lat DECIMAL(8,4);
+	
+	DECLARE min_level INT;
+	DECLARE max_level INT;
+
+	DECLARE lastfound DATETIME;
+	DECLARE bot_run_id INT;
+
+	DECLARE done INT DEFAULT 0;
+
+
+	DECLARE c_bot_run_ids CURSOR FOR
+	SELECT btrns_id FROM bot_runs_btrns WHERE btrns_id > (SELECT IFNULL(MAX(qst_btrns_id), 0) FROM qa_statistic_qst);
+
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+	OPEN c_bot_run_ids;
+
+	REPEAT 
+		FETCH c_bot_run_ids INTO bot_run_id;
+		IF NOT done THEN 
+
+			IF bot_run_id > 0 THEN
+				SELECT btrns_rns_start INTO lastfound FROM bot_runs_btrns WHERE btrns_id = bot_run_id;
+
+				SELECT COUNT(*) INTO total_countries FROM countries_cnt WHERE cnt_last_found = lastfound;
+				SELECT COUNT(*) INTO total_locations FROM locations_lct WHERE lct_last_found = lastfound;
+				SELECT DISTINCT COUNT(*) INTO total_locations_with_alternames FROM location_synonyms_lctsyn WHERE lctsyn_lastfound = lastfound;
+
+				SELECT MIN(cnt_gid) INTO min_country_gid FROM countries_cnt WHERE cnt_last_found = lastfound;	
+				SELECT MAX(cnt_gid) INTO max_country_gid FROM countries_cnt WHERE cnt_last_found = lastfound;
+				SELECT MIN(lct_gid) INTO min_location_gid FROM locations_lct WHERE lct_last_found = lastfound;	
+				SELECT MAX(lct_gid) INTO max_location_gid FROM locations_lct WHERE lct_last_found = lastfound;
+
+				SELECT MIN(lct_latitude) INTO min_location_lat FROM locations_lct WHERE lct_last_found = lastfound;	
+				SELECT MAX(lct_longitude) INTO max_location_lng FROM locations_lct WHERE lct_last_found = lastfound;
+				SELECT MIN(lct_longitude) INTO min_location_lng FROM locations_lct WHERE lct_last_found = lastfound;	
+				SELECT MAX(lct_latitude) INTO max_location_lat FROM locations_lct WHERE lct_last_found = lastfound;
+
+				SELECT MIN(lct_level) INTO min_level FROM locations_lct WHERE lct_last_found = lastfound;
+				SELECT MAX(lct_level) INTO max_level FROM locations_lct WHERE lct_last_found = lastfound;
+
+				INSERT INTO `bot_local`.`qa_statistic_qst` (
+					`qst_btrns_id` ,
+					`qst_is_valid` ,
+					`qst_total_countries` ,
+					`qst_total_locations` ,
+					`qst_total_locations_with_alter_names` ,
+					`qst_min_country_gid` ,
+					`qst_max_country_gid` ,
+					`qst_min_location_gid` ,
+					`qst_max_location_gid` ,
+					`qst_min_location_lat` ,
+					`qst_min_location_lng` ,
+					`qst_max_location_lat` ,
+					`qst_max_location_lng` ,
+					`qst_min_country_level` ,
+					`qst_max_country_level`
+				)
+				VALUES (bot_run_id, 0, total_countries, total_countries, total_locations_with_alternames,
+					min_country_gid, max_country_gid, min_location_gid, max_location_gid, 
+					min_location_lat, min_location_lng, max_location_lat, max_location_lng,
+					min_level, max_level);
+			END IF;
+		END IF;
+		UNTIL done END REPEAT;
+	CLOSE c_bot_run_ids;
+END;//

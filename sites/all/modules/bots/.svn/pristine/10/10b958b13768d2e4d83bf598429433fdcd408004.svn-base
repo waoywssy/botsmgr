@@ -1,0 +1,9 @@
+-- mysql -u root -p bot_hnrcsc
+
+DROP TABLE IF EXISTS `bot_runs_btrns`;
+DROP TABLE IF EXISTS `checklist_chc`;
+DROP TABLE IF EXISTS `companies_cmp`;
+DROP TABLE IF EXISTS `company_job_cjb`;
+DROP TABLE IF EXISTS `jobs_jbs`;
+DROP TABLE IF EXISTS `qa_statistic_qst`;
+DROP TABLE IF EXISTS `web_statistic_wbs`;

@@ -1,0 +1,4 @@
+#get product description
+<p[^<]*description[^<]*
+  (.{0,9999}?)
+</p

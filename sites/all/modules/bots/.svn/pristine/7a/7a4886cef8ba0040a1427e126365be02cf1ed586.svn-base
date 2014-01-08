@@ -1,0 +1,14 @@
+-- mysql -u root -p bot_bestbuy
+
+DROP TABLE IF EXISTS BestBuy_Categories;
+DROP TABLE IF EXISTS BestBuy_Category_Classes;
+DROP TABLE IF EXISTS BestBuy_CheckList;
+DROP TABLE IF EXISTS BestBuy_Computers;
+DROP TABLE IF EXISTS BestBuy_Computer_Prices;
+DROP TABLE IF EXISTS BestBuy_HDDs;
+DROP TABLE IF EXISTS BestBuy_HDD_Prices;
+DROP TABLE IF EXISTS BestBuy_TVs;
+DROP TABLE IF EXISTS BestBuy_TV_Prices;
+DROP TABLE IF EXISTS bot_runs_btrns;
+DROP TABLE IF EXISTS qa_statistic_qst;
+DROP TABLE IF EXISTS web_statistic_wbs;

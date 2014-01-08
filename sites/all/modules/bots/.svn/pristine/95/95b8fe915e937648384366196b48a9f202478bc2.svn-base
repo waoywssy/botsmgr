@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ns1:settings  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+   xmlns:ns1='http://xml.boryi.com/schema/boryi.bot.conf'
+   xsi:schemaLocation='http://xml.boryi.com/schema/boryi.bot.conf boryi.bot.conf.xsd'>
+        <ns1:webUrl>http://www.monster.com</ns1:webUrl>
+        <ns1:httpUserAgent>Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.16) Gecko/2009121602 Ubuntu/8.04 (hardy) Firefox/3.0.16</ns1:httpUserAgent>
+        <ns1:httpAccept>application/json, text/javascript, */*</ns1:httpAccept>
+        <ns1:httpAcceptLanguage>en-us,en;q=0.5</ns1:httpAcceptLanguage>
+        <ns1:httpAcceptEncoding>gzip,deflate</ns1:httpAcceptEncoding>
+        <ns1:httpAcceptCharset>ISO-8859-1,utf-8;q=0.7,*;q=0.7</ns1:httpAcceptCharset>
+        <ns1:httpConnection>Keep-Alive</ns1:httpConnection>
+        <ns1:httpKeepAlive>300</ns1:httpKeepAlive>
+        <ns1:httpReferer></ns1:httpReferer>
+        <ns1:dbCentralServerType>MYSQL</ns1:dbCentralServerType>
+        <ns1:dbCentralServer>localhost</ns1:dbCentralServer>
+        <ns1:dbCentralServerPort>3306</ns1:dbCentralServerPort>
+        <ns1:dbCentralName>bot_central</ns1:dbCentralName>
+        <ns1:dbCentralUser>root</ns1:dbCentralUser>
+        <ns1:dbCentralPassword>suhang</ns1:dbCentralPassword>
+        <ns1:dbLocalServerType>MYSQL</ns1:dbLocalServerType>
+        <ns1:dbLocalServer>localhost</ns1:dbLocalServer>
+        <ns1:dbLocalServerPort>3306</ns1:dbLocalServerPort>
+        <ns1:dbLocalName>usjobs</ns1:dbLocalName>
+        <ns1:dbLocalUser>root</ns1:dbLocalUser>
+        <ns1:dbLocalPassword>suhang</ns1:dbLocalPassword>
+        <ns1:proxyScheme>http</ns1:proxyScheme>
+        <ns1:proxyServer>10.10.0.1</ns1:proxyServer>
+        <ns1:proxyPort>8888</ns1:proxyPort>
+        <ns1:proxyUser></ns1:proxyUser>
+        <ns1:proxyPassword></ns1:proxyPassword>
+        <ns1:maxPageHitsPerHour>0</ns1:maxPageHitsPerHour>
+        <ns1:maxKilobytesPerHour>0</ns1:maxKilobytesPerHour>
+        <ns1:webRetry>12</ns1:webRetry>
+        <ns1:webRetryMethod>EXPONENTIAL</ns1:webRetryMethod>
+        <ns1:webRetryBase>1000</ns1:webRetryBase>
+        <ns1:webRetryStep>2000</ns1:webRetryStep>
+        <ns1:dbRetry>12</ns1:dbRetry>
+        <ns1:dbRetryMethod>EXPONENTIAL</ns1:dbRetryMethod>
+        <ns1:dbRetryBase>1000</ns1:dbRetryBase>
+        <ns1:dbRetryStep>2000</ns1:dbRetryStep>
+        <ns1:maxRunTime>86100</ns1:maxRunTime>
+        <ns1:webThreads>5</ns1:webThreads>
+        <ns1:tempDir>tmp/</ns1:tempDir>
+        <ns1:regexDir>regex/</ns1:regexDir>
+        <ns1:mailProtocol>smtp</ns1:mailProtocol>
+        <ns1:mailHost>srv1.hq.boryi.com</ns1:mailHost>
+        <ns1:mailTo>yang.song@hq.boryi.com</ns1:mailTo>
+        <ns1:mailSubject>Bot automatic QA report - </ns1:mailSubject>
+        <ns1:regexes>
+            <ns1:regex>
+                <ns1:name>verify_page</ns1:name>
+                <ns1:value>verify_page.regex</ns1:value>
+                <ns1:stages>
+                    <ns1:stage>0</ns1:stage>
+                </ns1:stages>
+            </ns1:regex>
+            <ns1:regex>
+                <ns1:name>totalJobs</ns1:name>
+                <ns1:value>get_total_jobs.regex</ns1:value>
+                <ns1:stages>
+                    <ns1:stage>0</ns1:stage>
+                </ns1:stages>
+            </ns1:regex>
+            <ns1:regex>
+                <ns1:name>pageJobsCount</ns1:name>
+                <ns1:value>get_page_jobs_Count.regex</ns1:value>
+                <ns1:stages>
+                    <ns1:stage>0</ns1:stage>
+                </ns1:stages>
+            </ns1:regex>
+            <ns1:regex>
+                <ns1:name>getJobs</ns1:name>
+                <ns1:value>get_jobs.regex</ns1:value>
+                <ns1:stages>
+                    <ns1:stage>0</ns1:stage>
+                </ns1:stages>
+            </ns1:regex>
+            <ns1:regex>
+                <ns1:name>getJobsTable</ns1:name>
+                <ns1:value>get_job_list_table.regex</ns1:value>
+                <ns1:stages>
+                    <ns1:stage>0</ns1:stage>
+                </ns1:stages>
+            </ns1:regex>
+        </ns1:regexes>
+        <ns1:centralProcedures>
+			<ns1:procedure>
+                <ns1:name>insert_run</ns1:name>
+                <ns1:value>{call insert_run(?,?,?,?,?)}</ns1:value>
+            </ns1:procedure>
+			<ns1:procedure>
+                <ns1:name>update_run</ns1:name>
+                <ns1:value>{call update_run(?,?,?,?,?,?,?)}</ns1:value>
+            </ns1:procedure>
+			<ns1:procedure>
+                <ns1:name>insert_event</ns1:name>
+                <ns1:value>{call insert_event(?,?,?,?,?,?,?,?)}</ns1:value>
+            </ns1:procedure>
+        </ns1:centralProcedures>
+	<ns1:localProcedures>
+            <ns1:procedure>
+                <ns1:name>get_resumed_run</ns1:name>
+                <ns1:value>{call get_resumed_run(?,?,?)}</ns1:value>
+            </ns1:procedure>
+			<ns1:procedure>
+                <ns1:name>insert_bot_run</ns1:name>
+                <ns1:value>{call insert_bot_run(?,?,?,?,?)}</ns1:value>
+            </ns1:procedure>
+			<ns1:procedure>
+                <ns1:name>get_checklist</ns1:name>
+                <ns1:value>{call get_checklist(?,?,?)}</ns1:value>
+            </ns1:procedure>
+			<ns1:procedure>
+                <ns1:name>get_checkinglist</ns1:name>
+                <ns1:value>{call get_checkinglist(?,?,?)}</ns1:value>
+            </ns1:procedure>
+			<ns1:procedure>
+                <ns1:name>insert_checkitem</ns1:name>
+                <ns1:value>{call insert_checkitem(?,?,?,?,?,?,?)}</ns1:value>
+            </ns1:procedure>
+			<ns1:procedure>
+                <ns1:name>clear_checklist</ns1:name>
+                <ns1:value>{call clear_checklist(?,?,?)}</ns1:value>
+            </ns1:procedure>
+			<ns1:procedure>
+                <ns1:name>update_checkingitem</ns1:name>
+                <ns1:value>{call update_checkingitem(?,?,?,?)}</ns1:value>
+            </ns1:procedure>
+			<ns1:procedure>
+                <ns1:name>update_checkeditem</ns1:name>
+                <ns1:value>{call update_checkeditem(?,?,?,?)}</ns1:value>
+            </ns1:procedure>
+			<ns1:procedure>
+                <ns1:name>update_decheckingitems</ns1:name>
+                <ns1:value>{call update_decheckingitems(?,?,?)}</ns1:value>
+            </ns1:procedure>
+            <ns1:procedure>
+                <ns1:name>update_checklist_status</ns1:name>
+                <ns1:value>{call update_checklist_status(?,?)}</ns1:value>
+            </ns1:procedure>
+			<ns1:procedure>
+                <ns1:name>insert_web_statistic</ns1:name>
+                <ns1:value>{call insert_web_statistic(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}</ns1:value>
+            </ns1:procedure>
+			<ns1:procedure>
+                <ns1:name>qa_compute_statistic</ns1:name>
+                <ns1:value>{call qa_compute_statistic()}</ns1:value>
+            </ns1:procedure>
+            <ns1:procedure>
+                <ns1:name>qa_analyze</ns1:name>
+                <ns1:value>{call qa_analyze_monster()}</ns1:value>
+            </ns1:procedure>
+            <ns1:procedure>
+                <ns1:name>get_search_criteria</ns1:name>
+                <ns1:value>{call get_search_criteria()}</ns1:value>
+            </ns1:procedure>
+            <ns1:procedure>
+                <ns1:name>get_site</ns1:name>
+                <ns1:value>{call save_location(?)}</ns1:value>
+            </ns1:procedure>
+            <ns1:procedure>
+                <ns1:name>save_job</ns1:name>
+                <ns1:value>{call save_job(?,?,?,?,?,?,?,?,?,?)}</ns1:value>
+            </ns1:procedure>
+	   </ns1:localProcedures>
+        <ns1:params>
+            <ns1:param>
+                <ns1:name>siteId</ns1:name>
+                <ns1:value></ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>jobsPerPage</ns1:name>
+                <ns1:value>25</ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>maxExceededPageNumber</ns1:name>
+                <ns1:value>10</ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>jobListingSummaryInfoRetry</ns1:name>
+                <ns1:value>3</ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>jobRetry</ns1:name>
+                <ns1:value>3</ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>verifyPageRetry</ns1:name>
+                <ns1:value>3</ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>dateFormats</ns1:name>
+                <ns1:value>mm/dd</ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>request.param.pageName</ns1:name>
+                <ns1:value>search.aspx</ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>request.param.queryString</ns1:name>
+                <ns1:value>brd=1&amp;q={Keywords}&amp;cy=us&amp;where={Location}&amp;rad={Radius}&amp;rad_units=miles&amp;re=95&amp;pg={Page}&amp;dv=1</ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>request.param.sortField</ns1:name>
+                <ns1:value>1</ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>request.param.autoSortByDate</ns1:name>
+                <ns1:value>false</ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>request.param.name.Keywords</ns1:name>
+                <ns1:value>{keywords}</ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>request.param.name.excludedWords</ns1:name>
+                <ns1:value>{ExcludedWords}</ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>request.param.name.Location</ns1:name>
+                <ns1:value>{Location}</ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>request.param.name.Radius</ns1:name>
+                <ns1:value>{Radius}</ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>request.param.name.Page</ns1:name>
+                <ns1:value>{Page}</ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>contentType</ns1:name>
+                <ns1:value>application/json; charset=utf-8</ns1:value>
+            </ns1:param>
+            <ns1:param>
+                <ns1:name>host</ns1:name>
+                <ns1:value>jobsearch.monster.com</ns1:value>
+            </ns1:param>
+        </ns1:params>
+</ns1:settings>

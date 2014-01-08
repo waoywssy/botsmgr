@@ -1,0 +1,3 @@
+-- mysql -u root -p bot_geoname
+
+DROP USER 'botmaster_geoname'@'localhost', 'botuser_geoname'@'localhost';

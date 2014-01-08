@@ -1,0 +1,46 @@
+<?php
+function get_run()
+{
+	$bid = $_REQUEST['bid']; 
+	$jid = $_REQUEST['jid'];
+	if (empty($bid)){exit(0);}
+	if (empty($jid)){exit(0);}
+
+	// connect to the MySQL database server
+	db_set_active('bot_central');
+
+	// find out if there is existing task running
+	$sql = "SELECT COUNT(*) AS count FROM tasks_tsk WHERE tsk_jbs_id = $jid AND tsk_bts_id = $bid AND tsk_running = 1";
+	$count = db_result(db_query($sql));
+
+	$runable = 1;
+	if ($count > 0)
+	{
+		// running job exists
+		$runable = 0;
+	}
+	else
+	{
+		$sql = "SELECT bts_path as path, bts_file as file FROM bots_bts WHERE bts_id = $bid";
+		$result = db_query($sql);
+		$row = db_fetch_array($result);
+
+		$botpath = $row['path'];
+		$botfile = $row['file'];
+
+		$sql = "SELECT jbs_path as path, jbs_file as file FROM jobs_jbs WHERE jbs_bts_id = $bid AND jbs_id = $jid";
+		$result = db_query($sql);
+		$row = db_fetch_array($result);
+		$configpath = $row['path'];
+		$configfile = $row['file'];
+
+		$command = "java -jar \"$botpath$botfile\" 1 $bid $jid -1 false \"$configpath$configfile\"";
+
+		chdir($botpath);
+
+		shell_exec("$command"  . " > /dev/null &");
+	}
+	db_set_active('default');
+	return $runable;
+}
+?>

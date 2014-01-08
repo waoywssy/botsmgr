@@ -1,0 +1,45 @@
+package com.boryi.bots.bestbuy;
+
+import java.math.BigDecimal;
+
+/**
+ * The BestBuy HDD entity
+ *
+ * <p><strong>Copyright 2010 - 2018 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Yang Song
+ * @version 1.0
+ * @since December 2010
+ */
+public class HDD extends Product{
+    private String capacity;
+    private String type;
+
+
+    public HDD()
+    {}
+
+    
+    public HDD(Long sku, String model, String title, BigDecimal price,
+            BigDecimal salePrice, String brand, int categoryId, 
+            String url,String capacity, String type)
+    {
+        super(sku, model, title, price, salePrice, brand, categoryId, url);
+        this.capacity = capacity;
+        this.type = type;
+    }
+
+    /**
+     * @return the capacity
+     */
+    public String getCapacity() {
+        return capacity;
+    }
+
+    /**
+     * @return the type
+     */
+    public String getType() {
+        return type;
+    }
+}

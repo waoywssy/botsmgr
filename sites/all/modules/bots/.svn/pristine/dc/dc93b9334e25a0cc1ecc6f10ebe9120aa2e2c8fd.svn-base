@@ -1,0 +1,41 @@
+package com.boryi.bots.bestbuy;
+
+import com.boryi.bots.base.*;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URI;
+
+/**
+ *
+ * @author yangsong
+ */
+public class BestBuyChecklistEntity extends BotChecklistEntity{
+
+    /**
+     * Name of the class
+     */
+    private String className;
+
+    /**
+     * BestBuy checklist entity
+     * 
+     * @param url
+     * @param stage
+     * @param id
+     * @param level
+     * @param className
+     */
+    public BestBuyChecklistEntity(URI uri, int stage,
+            int id, int level, String className) throws MalformedURLException, UnsupportedEncodingException
+    {
+        super(uri, stage, id, level);
+        this.className = className;
+    }
+
+    /**
+     * @return the className
+     */
+    public String getClassName() {
+        return className;
+    }
+}

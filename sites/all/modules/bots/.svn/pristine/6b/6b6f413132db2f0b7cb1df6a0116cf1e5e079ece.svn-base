@@ -1,0 +1,260 @@
+package com.boryi.bots.bestbuy;
+
+import com.boryi.bots.base.BotConfig;
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+/**
+ * The BestBuy products collection entity
+ *
+ * <p><strong>Copyright 2010 - 2018 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Yang Song
+ * @version 1.0
+ * @since December 2010
+ */
+public class ProductsCollection {
+
+    /**
+     * The name of the class, like 'TV', 'HDD'...
+     */
+    private String className;
+    /**
+     * 
+     */
+    private int classId;
+    /**
+     * The collection of products
+     */
+    private ArrayList products;
+
+   
+    /**
+     * Constructor
+     * @param className
+     */
+    public ProductsCollection(String className)
+    {
+        this.className = className;
+        this.products = new ArrayList();
+    }
+
+    /**
+     * Constructor
+     * @param className
+     */
+    public ProductsCollection(int classId)
+    {
+        this.classId = classId;
+        this.products = new ArrayList();
+    }
+
+
+    /**
+     * Constructor
+     */
+    public ProductsCollection() { }
+    
+
+    /**
+     * @return the className
+     */
+    public String getClassName() {
+        return className;
+    }
+
+
+    /**
+     * @return the classId
+     */
+    public int getClassId() {
+        return classId;
+    }
+
+    /**
+     * @return the products
+     */
+    public ArrayList getProducts() {
+        return products;
+    }
+
+    /**
+     * Add an product item
+     *
+     * @param itemSectionString
+     * @param product
+     */
+    public void Add(String itemSectionString, Product product)
+    {
+        Pattern pattern = null;
+        Matcher matcher = null;
+
+        String brand = "";
+        String capacity = "";
+        String make = "";
+
+        try
+        {
+            switch(this.classId)
+            {
+                case 1 :
+                    // TV
+                    String resolution = "";
+                    String refreshRate = "";
+                    String size = "";
+                    boolean internetConnected = false;
+                    boolean is3D = false;
+
+                    pattern = BotConfig.getInstance().getPatterns().get("TV.GetInternetconnected");
+                    internetConnected = pattern.matcher(itemSectionString).find();
+                    pattern = BotConfig.getInstance().getPatterns().get("TV.Get3D");
+                    is3D = pattern.matcher(product.getTitle()).find();
+
+                    // get title
+                    pattern = BotConfig.getInstance().getPatterns().get("TV.GetTitleInfo");
+                    matcher = pattern.matcher(product.getTitle());
+                    if (matcher.find())
+                    {
+                        brand = matcher.group(1) == null ? "" : matcher.group(1);
+                        make = matcher.group(2) == null ? "" : matcher.group(2);
+                        size = matcher.group(3) == null ? "" : matcher.group(3);
+                        resolution = matcher.group(4) == null ? "" : matcher.group(4);
+                        refreshRate = matcher.group(5) == null ? "" : matcher.group(5);
+                    }
+
+                    this.products.add(new TV(product.getSku(), product.getModel(),
+                        product.getTitle(), product.getPrice(),
+                        product.getSalePrice(), brand, product.getCategoryId(),
+                        product.getUrl(), resolution, refreshRate, size, internetConnected, is3D));
+
+                    break;
+                case 2 :
+                    // Computer
+                    String processor = "";
+                    String memory = "";
+                    String hardDiskSize = "";
+                    String color = "";
+                    String display = "";
+                    String os = "";
+                    String description = "";
+
+                    // get title
+                    pattern = BotConfig.getInstance().getPatterns().get("PC.GetTitleInfo1");
+                    matcher = pattern.matcher(product.getTitle());
+                    if (matcher.find())
+                    {
+                        brand = matcher.group(1) == null ? "" : matcher.group(1);
+                        make = matcher.group(2) == null ? "" : matcher.group(2);
+                        processor = matcher.group(3) == null ? "" : matcher.group(3);
+                        color = matcher.group(4) == null ? "" : matcher.group(4);
+                        hardDiskSize = matcher.group(5) == null ? "" : matcher.group(5);
+                    }
+                    else
+                    {
+                        pattern = BotConfig.getInstance().getPatterns().get("PC.GetTitleInfo");
+                        matcher = pattern.matcher(product.getTitle());
+                        if (matcher.find())
+                        {
+                            brand = matcher.group(1) == null ? "" : matcher.group(1);
+                            make = matcher.group(2) == null ? "" : matcher.group(2);
+                            processor = matcher.group(3) == null ? "" : matcher.group(3);
+                            display = matcher.group(4) == null ? "" : matcher.group(4);
+                            memory = matcher.group(5) == null ? "" : matcher.group(5);
+                            hardDiskSize = matcher.group(6) == null ? "" : matcher.group(6);
+                            color = matcher.group(7) == null ? "" : matcher.group(7);
+                        }
+                    }
+
+                    pattern = BotConfig.getInstance().getPatterns().get("PC.GetOS");
+                    matcher = pattern.matcher(itemSectionString);
+                    if (matcher.find())
+                    {
+                        os = matcher.group(1) == null ? "" : matcher.group(1);
+                    }
+
+                    pattern = BotConfig.getInstance().getPatterns().get("PC.Description");
+                    matcher = pattern.matcher(itemSectionString);
+                    if (matcher.find())
+                    {
+                        description = matcher.group(1) == null ? "" : matcher.group(1);
+                        description = description.replaceAll("</?(font|b)[^>]*>", "");
+                    }
+
+                    try
+                    {
+                        if (memory.length()==0)
+                        {
+                            Pattern pattern1 = Pattern.compile("((?:\\d(?:.\\d)?)GB)");
+                            Matcher matcher1 = pattern1.matcher(description);
+                            if (matcher1.find())
+                            {
+                                memory = matcher1.group(1) == null ? "" : matcher1.group(1);
+                            }
+                        }
+                        if (hardDiskSize.length()==0)
+                        {
+                            Pattern pattern1 = Pattern.compile("((?:\\dTB)|(?:\\d\\d+(?:G|T)B))");
+                            Matcher matcher1 = pattern1.matcher(description);
+                            if (matcher1.find())
+                            {
+                                hardDiskSize = matcher1.group(1) == null ? "" : matcher1.group(1);
+                            }
+                        }
+                        if (display.length()==0)
+                        {
+                            Pattern pattern1 = Pattern.compile("([\\d.]+\")");
+                            Matcher matcher1 = pattern1.matcher(description);
+                            if (matcher1.find())
+                            {
+                                display = matcher1.group(1) == null ? "" : matcher1.group(1);
+                            }
+                        }
+                        if (os.length()==0)
+                        {
+                            Pattern pattern1 = Pattern.compile("((?:Windows|Vista)[^<;/]+)\"");
+                            Matcher matcher1 = pattern1.matcher(description);
+                            if (matcher1.find())
+                            {
+                                os = matcher1.group(1) == null ? "" : matcher1.group(1);
+                            }
+                        }
+                    }
+                    catch(Exception exx)
+                    {
+                        Logger.warn("Failed to parse pc attributes",
+                                product.getSku() + ";" + exx.toString());
+                    }
+
+                    this.products.add(new Computer(product.getSku(), product.getModel(),
+                        product.getTitle(), product.getPrice(),
+                        product.getSalePrice(), brand, product.getCategoryId(),
+                        product.getUrl(), processor, memory, hardDiskSize,
+                        color, display, os, description));
+
+                    break;
+                case 3 :
+                    // HDD
+                    pattern = BotConfig.getInstance().getPatterns().get("HDD.GetTitleInfo");
+                    matcher = pattern.matcher(product.getTitle());
+                    if (matcher.find())
+                    {
+                        int count = matcher.groupCount();
+
+                        brand = matcher.group(1) == null ? "" : matcher.group(1);
+                        make = matcher.group(2) == null ? "" : matcher.group(2);
+                        capacity = matcher.group(3) == null ? "" : matcher.group(3);
+                    }
+
+                    this.products.add(new HDD(product.getSku(), product.getModel(),
+                        product.getTitle(), product.getPrice(),
+                        product.getSalePrice(), brand, product.getCategoryId(),
+                        product.getUrl(), capacity, make));
+                    break;
+            }
+        }
+        catch(Exception ex)
+        {
+            Logger.error("Error adding product", ex.toString());
+        }
+    }
+}

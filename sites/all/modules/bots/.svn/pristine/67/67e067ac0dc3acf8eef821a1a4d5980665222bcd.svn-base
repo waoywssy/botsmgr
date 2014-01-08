@@ -1,0 +1,2 @@
+DROP PROCEDURE IF EXISTS `monster_qa_analyze`;
+DROP PROCEDURE IF EXISTS `monster_qa_compute_statistic`;

@@ -1,0 +1,146 @@
+package com.boryi.bots.bestbuy;
+
+import java.math.BigDecimal;
+
+/**
+ * The BestBuy product entity
+ *
+ * <p><strong>Copyright 2010 - 2018 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Yang Song
+ * @version 1.0
+ * @since December 2010
+ */
+public class Product {
+    /**
+     *  The sku of the product, like '1257136'...
+     */
+    protected Long sku;
+
+    /**
+     * The model of the product, like '970-000001', 'NSX40GT1'...
+     */
+    protected String model;
+
+    /**
+     * The title of the product item, like
+     * 'Sony - Google TV 40" Class / 1080p / 60Hz / LED-LCD HDTV'
+     */
+    protected String title;
+
+    /**
+     * The regular price of the product item, like '999.99'
+     */
+    protected BigDecimal price;
+
+    /**
+     * The sale price of the product item, like '1199.99'
+     */
+    protected BigDecimal salePrice;
+
+    /**
+     * The brand of the product item, like 'Sony', 'Logitech'...
+     */
+    protected String brand;
+
+    /**
+     * The id of category of the product item
+     */
+    protected int categoryId;
+
+    /**
+     * The url of the detail page of this product
+     */
+    private String url;
+
+
+    /***
+     * Constructor
+     * 
+     * @param sku           the sku of the product
+     * @param model         the model of the product
+     * @param title         the title of the product
+     * @param price         the price of the product
+     * @param salePrice     the sale price of the product
+     * @param brand         the brand of the product
+     * @param categoryId    the category id of the product
+     * @param url           the Url of the product detail page
+     */
+    public Product(Long sku, String model, String title,
+            BigDecimal price, BigDecimal salePrice, String brand,
+            int categoryId, String url)
+    {
+        this.sku = sku;
+        this.model = model;
+        this.title = title;
+        this.price = price;
+        this.salePrice = salePrice;
+        this.brand = brand;
+        this.categoryId = categoryId;
+        this.url = url;
+    }
+
+
+    /**
+     * Constructor
+     */
+    public Product()
+    {
+    }
+
+    /**
+     * @return the sku
+     */
+    public Long getSku() {
+        return sku;
+    }
+
+    /**
+     * @return the model
+     */
+    public String getModel() {
+        return model;
+    }
+
+    /**
+     * @return the title
+     */
+    public String getTitle() {
+        return title;
+    }
+
+    /**
+     * @return the price
+     */
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    /**
+     * @return the salePrice
+     */
+    public BigDecimal getSalePrice() {
+        return salePrice;
+    }
+
+    /**
+     * @return the brand
+     */
+    public String getBrand() {
+        return brand;
+    }
+
+    /**
+     * @return the categoryId
+     */
+    public int getCategoryId() {
+        return categoryId;
+    }
+
+    /**
+     * @return the url
+     */
+    public String getUrl() {
+        return url;
+    }
+}

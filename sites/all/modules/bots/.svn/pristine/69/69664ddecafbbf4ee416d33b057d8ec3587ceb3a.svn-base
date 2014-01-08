@@ -1,0 +1,301 @@
+-- mysql -u root -p hotels
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `insert_checkitem`(bid int, jid int, tid int, url varchar(512), stage int, id int, level int)
+BEGIN
+    IF NOT EXISTS (SELECT * FROM checklist_chc WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_url = BINARY url AND chc_id = id) THEN
+        INSERT `checklist_chc` (`chc_bts_id`, `chc_jbs_id`, `chc_tsk_id`, `chc_url`, `chc_stage`, `chc_id`, `chc_status`, `chc_level`) VALUES (bid, jid, tid, url, stage, id, -1, level);
+    END IF;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `update_checkingitem`(bid int, jid int, tid int, url varchar(512))
+BEGIN
+    UPDATE `checklist_chc` SET chc_status = 0 WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_url = BINARY url;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `update_checkeditem`(bid int, jid int, tid int, url varchar(512))
+BEGIN
+    UPDATE `checklist_chc` SET chc_status = 1 WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_url = BINARY url;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `get_checklist`(bid int, jid int, tid int)
+BEGIN
+    SELECT chc_url AS url, chc_stage AS stage, chc_id AS id, chc_level as level FROM `checklist_chc` WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_status = -1;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `get_checkinglist`(bid int, jid int, tid int)
+BEGIN
+    SELECT chc_url AS url, chc_stage AS stage, chc_id AS id, chc_level as level FROM `checklist_chc` WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_status = 0;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `clear_checklist`(bid int, jid int, tid int)
+BEGIN
+    DELETE FROM `checklist_chc` WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `update_checklist_status`(id int, status int)
+BEGIN
+	UPDATE checklist_chc SET chc_status = status WHERE chc_id = id;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `get_resumed_run`(bid int, jid int, tid int)
+BEGIN
+    DELETE FROM `checklist_chc` WHERE chc_id NOT IN (SELECT kwdlct_id FROM `keywords_location_kwdlct`);
+    IF EXISTS (SELECT * FROM `checklist_chc` WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_status <= 0) THEN
+        SELECT MAX(btrns_id) INTO @brid FROM bot_runs_btrns WHERE btrns_bts_id = bid AND btrns_jbs_id = jid AND btrns_tsk_id = tid;
+        SELECT @brid AS brid, btrns_rns_id AS rid, btrns_rns_start AS rstart FROM bot_runs_btrns WHERE btrns_id = @brid;
+    ELSE
+        SELECT 0 AS brid, 0 AS rid;
+    END IF;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `update_decheckingitems`(bid int, jid int, tid int)
+BEGIN
+    UPDATE `checklist_chc` SET chc_status = -1 WHERE chc_bts_id = bid AND chc_jbs_id = jid AND chc_tsk_id = tid AND chc_status = 0;
+END;//
+
+
+-- --------------------------------------------------------
+--
+-- Stored procedures for `bot_runs_btrns`
+--
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `insert_bot_run`(bid int, jid int, tid int, rid int, rstart datetime)
+BEGIN
+    IF NOT EXISTS (SELECT * FROM bot_runs_btrns WHERE btrns_bts_id = bid AND btrns_jbs_id = jid AND btrns_tsk_id = tid AND btrns_rns_id = rid) THEN
+        INSERT `bot_runs_btrns` (`btrns_bts_id`, `btrns_jbs_id`, `btrns_tsk_id`, `btrns_rns_id`, `btrns_rns_start`) VALUES (bid, jid, tid, rid, rstart);
+    END IF;
+    SELECT btrns_id AS id FROM bot_runs_btrns WHERE btrns_bts_id = bid AND btrns_jbs_id = jid AND btrns_tsk_id = tid AND btrns_rns_id = rid;
+END;//
+
+
+-- --------------------------------------------------------
+--
+-- Stored procedures for `web_statistic_wbs`
+--
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `insert_web_statistic`(brid int, resume tinyint(1), wstart datetime, wend datetime, duration decimal(10,2), actual_duration decimal(10,2), page_hits_total int(8), kb_downloaded_total int(8), kb_uploaded_total int(8), b_request_header_total int(8), b_request_content_total int(8), b_response_header_total int(8), b_response_content_total int(8), max_page_hits_per_hour int(4), max_kb_per_hour int(4), threads int(4))
+BEGIN
+    IF NOT EXISTS (SELECT * FROM web_statistic_wbs WHERE wbs_btrns_id = brid AND wbs_start = wstart) THEN
+        INSERT `web_statistic_wbs` (`wbs_btrns_id`, `wbs_is_resume`, `wbs_start`, `wbs_end`, `wbs_duration`, `wbs_actual_duration`, `wbs_page_hits_total`, `wbs_kb_downloaded_total`, `wbs_kb_uploaded_total`, `wbs_b_request_header_total`, `wbs_b_request_content_total`, `wbs_b_response_header_total`, `wbs_b_response_content_total`, `wbs_max_page_hits_per_hour`, `wbs_max_kb_per_hour`, `wbs_threads`) VALUES (brid, resume, wstart, wend, duration, actual_duration, page_hits_total, kb_downloaded_total, kb_uploaded_total, b_request_header_total, b_request_content_total, b_response_header_total, b_response_content_total, max_page_hits_per_hour, max_kb_per_hour, threads);
+    END IF;
+END;//
+
+-- --------------------------------------------------------
+--
+-- Stored procedures for `qa_statistic_qst`
+--
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `qa_analyze`()
+BEGIN
+	DECLARE outputs VARCHAR(8000) DEFAULT 'Qa analyze result: OK(test)';
+
+	SELECT outputs;
+END;//
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `qa_compute_statistic`()
+BEGIN
+
+END;//
+
+-- --------------------------------------------------------
+--
+-- Stored procedures for usjobs bots
+--
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `insert_job`(
+	id int,
+	st_id int,
+	st_jb_id varchar(50),
+	datePosted timestamp,
+	title varbinary(128),
+	jobUrl varchar(512),
+	company varbinary(128),
+	miles int,
+	city varchar(50),
+	state varchar(50),
+	zipcode char(10),
+	locationUrl varchar(512),
+    runDate timestamp
+)
+BEGIN
+    SELECT NULL INTO @location_id;
+
+    IF city IS NOT NULL THEN
+        IF NOT EXISTS (SELECT * FROM city_cty WHERE cty_city = city) THEN
+            INSERT INTO city_cty (cty_city) VALUES (city);
+        END IF;
+        SELECT cty_id INTO @city_id FROM city_cty WHERE cty_city = city;
+
+        IF NOT EXISTS (SELECT * FROM state_stt WHERE stt_state = state) THEN
+            INSERT INTO state_stt (stt_state) VALUES (state);
+        END IF;
+        SELECT stt_id INTO @state_id FROM state_stt WHERE stt_state = state;
+
+        IF NOT EXISTS (SELECT * FROM locations_lct WHERE lct_cty_id = @city_id AND lct_stt_id = @state_id AND (lct_zipcode IS NULL AND zipcode IS NULL OR lct_zipcode IS NOT NULL AND zipcode IS NOT NULL AND lct_zipcode = zipcode)) THEN
+            INSERT INTO locations_lct (lct_cty_id, lct_stt_id, lct_zipcode, lct_url) VALUES (@city_id, @state_id, zipcode, locationUrl);
+        ELSE	
+            UPDATE locations_lct
+            SET lct_url = locationUrl
+            WHERE lct_cty_id = @city_id AND lct_stt_id = @state_id AND (lct_zipcode IS NULL AND zipcode IS NULL OR lct_zipcode IS NOT NULL AND zipcode IS NOT NULL AND lct_zipcode = zipcode);
+        END IF;
+        SELECT lct_id INTO @location_id FROM locations_lct WHERE lct_cty_id = @city_id AND lct_stt_id = @state_id AND (lct_zipcode IS NULL AND zipcode IS NULL OR lct_zipcode IS NOT NULL AND zipcode IS NOT NULL AND lct_zipcode = zipcode);
+    END IF;
+
+	IF NOT EXISTS (SELECT * FROM jobs_jbs WHERE jbs_st_id = st_id AND jbs_site_job_id = st_jb_id) THEN
+		INSERT INTO jobs_jbs (jbs_st_id, jbs_site_job_id, jbs_date_posted, jbs_title, jbs_url, jbs_company, jbs_lct_id, jbs_firstseen, jbs_lastseen)
+		VALUES (st_id, st_jb_id, datePosted, title, jobUrl, company, @location_id, runDate, runDate);
+	ELSE
+		UPDATE jobs_jbs
+		SET jbs_date_posted = datePosted,
+			jbs_title = title,
+			jbs_url = jobUrl,
+			jbs_company = company,
+			jbs_lct_id = @location_id,
+			jbs_lastseen = runDate
+		WHERE jbs_st_id = st_id AND jbs_site_job_id = st_jb_id;
+	END IF;
+	SELECT jbs_id INTO @job_id FROM jobs_jbs WHERE jbs_st_id = st_id AND jbs_site_job_id = st_jb_id;
+
+	IF NOT EXISTS (SELECT * FROM keywords_jobs_kwdjbs WHERE kwdjbs_kwdlct_id = id AND kwdjbs_jbs_id = @job_id) THEN
+		INSERT INTO keywords_jobs_kwdjbs (kwdjbs_kwdlct_id, kwdjbs_jbs_id, kwdjbs_miles, kwdjbs_firstseen, kwdjbs_lastseen)
+		VALUES (id, @job_id, miles, runDate, runDate);
+	ELSE
+		UPDATE keywords_jobs_kwdjbs
+		SET kwdjbs_miles = miles,
+			kwdjbs_lastseen = runDate
+		WHERE kwdjbs_kwdlct_id = id AND kwdjbs_jbs_id = @job_id;
+	END IF;
+END;//
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `get_search_criteria`()
+BEGIN
+    SELECT kwdlct.kwdlct_id AS id,
+        kwdlct.kwdlct_kp_id AS kp_id,
+        kwdlct.kwdlct_lr_id AS lr_id,
+        kwd.kwd_set AS keywords,
+        xkwd.kwd_set AS excludedWords,
+        lr.lr_radius AS radius,
+        lct.lct_zipcode AS zipcode,
+        cty.cty_city AS city,
+        stt.stt_state AS state
+
+        FROM keywords_location_kwdlct AS kwdlct
+            JOIN keywords_pairs_kp AS kp ON kwdlct.kwdlct_kp_id = kp.kp_id
+            JOIN keywords_kwd AS kwd ON kwd.kwd_id = kp.kp_kwd_id
+            LEFT JOIN keywords_kwd AS xkwd ON xkwd.kwd_id = kp.kp_xkwd_id
+            JOIN locations_radius_lr AS lr ON kwdlct.kwdlct_lr_id = lr.lr_id
+            JOIN locations_lct AS lct ON lct.lct_id = lr.lr_lct_id
+            JOIN city_cty AS cty ON cty.cty_id = lct.lct_cty_id
+            JOIN state_stt AS stt ON stt.stt_id = lct.lct_stt_id;
+END;//
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `get_user_jobs`()
+BEGIN
+	SELECT usrkwd.keywords AS keywords,
+			usrkwd.excludedWords AS excludedWords,
+            usrkwd.usr_id AS userId,
+			searchedlct.lct_miles AS searchedMiles,
+			searchedlct.lct_zipcode AS searchedZipcode,
+			searchedlct.lct_city AS searchedCity,
+			searchedlct.lct_state AS searchedState,
+			kwdjbs.kwdjbs_miles AS miles,
+			jbs.jbs_date_posted AS datePosted,
+			jbs.jbs_title AS title,
+			jbs.jbs_url AS url,
+			jbs.jbs_company AS company,
+			lct.lct_zipcode AS zipcode,
+			lct.lct_url AS geoUrl,
+			cty.cty_city AS city,
+			stt.stt_state AS state
+
+    FROM 
+
+    (
+        SELECT usrkwd.usrkwd_kp_id AS kp_id,
+                usrkwd.usrkwd_usr_id AS usr_id,
+                kwd.kwd_set AS keywords, 
+                xkwd.kwd_set AS excludedWords
+            FROM (
+                SELECT *
+                    FROM users_keywords_usrkwd
+                    WHERE usrkwd_removed < usrkwd_inserted AND usrkwd_enabled = 1
+            ) AS usrkwd
+            JOIN user_usr AS usr ON usrkwd.usrkwd_usr_id = usr.usr_id AND usr.usr_accept_email = 1
+            JOIN keywords_pairs_kp AS kp ON usrkwd.usrkwd_kp_id = kp.kp_id
+            JOIN keywords_kwd AS kwd ON kp.kp_kwd_id = kwd.kwd_id
+            LEFT JOIN keywords_kwd AS xkwd ON kp.kp_xkwd_id = xkwd.kwd_id
+            ORDER BY usrkwd.usrkwd_inserted DESC
+    ) AS usrkwd 
+
+    JOIN 
+    (
+        SELECT * 
+            FROM keywords_jobs_kwdjbs
+            WHERE kwdjbs_lastseen >= (SELECT MAX(kwdjbs_lastseen) FROM keywords_jobs_kwdjbs)
+    ) AS kwdjbs
+    ON kwdjbs.kwdjbs_kp_id = usrkwd.kp_id
+
+    JOIN 
+    (
+        SELECT A.usrlct_lct_id AS lct_id,
+            A.usrlct_radius AS lct_miles,
+            usrlct.usrlct_usr_id AS usr_id,
+            B.lct_zipcode AS lct_zipcode,
+            C.cty_city AS lct_city,
+            D.stt_state AS lct_state
+        FROM (
+            SELECT *
+            FROM users_locations_usrlct
+            WHERE usrlct_removed < usrlct_inserted AND usrlct_enabled = 1
+        ) AS A
+        JOIN user_usr AS usr ON usrlct.usrlct_usr_id = usr.usr_id
+        JOIN locations_lct AS B ON A.usrlct_lct_id = B.lct_id
+        JOIN city_cty AS C ON B.lct_cty_id = C.cty_id
+        JOIN state_stt AS D ON B.lct_stt_id = D.stt_id
+        ORDER BY A.usrlct_inserted DESC
+    ) AS searchedlct 
+    ON kwdjbs.kwdjbs_lct_id = searchedlct.lct_id AND (kwdjbs.kwdjbs_miles IS NULL OR kwdjbs.kwdjbs_miles <= searchedlct.lct_miles) AND usrkwd.usr_id = searchedlct.usr_id
+
+    JOIN jobs_jbs AS jbs ON kwdjbs.kwdjbs_jbs_id = jbs.jbs_id
+
+    JOIN locations_lct AS lct ON jbs.jbs_lct_id = lct.lct_id
+
+    JOIN city_cty AS cty ON lct.lct_cty_id = cty.cty_id
+
+    JOIN state_stt AS stt ON lct.lct_stt_id = stt.stt_id
+
+    ORDER BY datePosted DESC;
+END;//
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `get_site`(site varchar(50))
+BEGIN
+    SELECT *
+        FROM sites_st
+        WHERE st_site = site;
+END;//
+

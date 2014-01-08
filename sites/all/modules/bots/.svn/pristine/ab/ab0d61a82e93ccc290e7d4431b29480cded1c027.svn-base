@@ -1,0 +1,214 @@
+package com.boryi.bots.geoname;
+
+import com.boryi.bots.base.*;
+import java.sql.CallableStatement;
+import java.sql.SQLException;
+import java.util.Date;
+
+/**
+ * GeoName database access object
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Yang Song
+ * @version 1.0
+ * @since August 2009
+ */
+public class GeoNameDao extends BotDao
+{
+    public GeoNameDao() throws Exception
+    {
+    }
+
+
+    /**
+     * Save country information into database
+     * 
+     * @param id    country geoname id
+     * @param name  country name like 'United States'
+     * @param url   country code use in URL query like 'USA'
+     * @param code  country code like 'US'
+     */
+    public void saveCountry(String id, String name, String url, String code)
+            throws SQLException, ClassNotFoundException,
+            InstantiationException, InstantiationException,
+            IllegalAccessException, InterruptedException
+    {
+        CallableStatement cs = null;
+        int retry = 0;
+        boolean failed = true;
+        while (failed) // database connection failure, then retry
+        {
+            try
+            {
+                cs = localProcedures.get("save_country");
+
+                cs.setInt(1, Integer.valueOf(id));
+                cs.setString(2, name);
+                cs.setString(3, url);
+                cs.setString(4, code);
+                cs.setObject(5, new Date(BotRunEntity.getInstance().getRunDate()));
+
+                cs.execute();
+
+                failed = false;
+            }
+            catch (SQLException sex)
+            {
+                if (retry < 1)
+                {
+                    BotDao.getInstance().saveEvent(
+                        new BotEventEntity(BotEventSeverity.ERROR,
+                        "Error saving country",
+                        "Failed to save country: " + url + "; " + sex.toString(),
+                        System.currentTimeMillis()));
+
+                    prepareLocal();
+                    retry++;
+                }
+                else
+                {
+                    throw sex;
+                }
+            }
+        }
+    }
+
+
+    /**
+     * Save location information into database
+     *
+     * @param region A GeoNameRegionEntity instance
+     */
+    public void saveLocation(GeoNameRegionEntity region)
+            throws ClassNotFoundException, InstantiationException,
+            IllegalAccessException, SQLException, InterruptedException
+    {
+        CallableStatement cs = null;
+        int retry = 0;
+        boolean failed = true;
+        while (failed) // database connection failure, then retry
+        {
+            try
+            {
+                cs = localProcedures.get("save_location");
+
+                cs.setInt(1, Integer.valueOf(region.getGeonameId()));
+                cs.setBytes(2, region.getName().getBytes());
+                cs.setBytes(3, toUrl(region.getName()).getBytes());
+                cs.setObject(4, region.getParrentId());
+                cs.setObject(5, region.getLat());
+                cs.setObject(6, region.getLng());
+                cs.setObject(7, new Date(BotRunEntity.getInstance().getRunDate()));
+                cs.setString(8, region.getCountryId());
+                cs.setInt(9, region.getLevel());
+
+                cs.execute();
+
+                failed = false;
+            }
+            catch (SQLException sex)
+            {
+                if (retry < 1)
+                {
+                    BotDao.getInstance().saveEvent(
+                        new BotEventEntity(BotEventSeverity.ERROR,
+                        "Error saving location",
+                        "Failed to save location: " + region.getGeonameId() + "; " + sex.toString(),
+                        System.currentTimeMillis()));
+
+                    prepareLocal();
+                    retry++;
+                }
+                else
+                {
+                    throw sex;
+                }
+            }
+
+            int len = region.getAlternateNames().length;
+            String[] names = region.getAlternateNames();
+            int geoid = Integer.valueOf(region.getGeonameId());
+            
+            for (int i = 0; i < len; i++)
+            {
+                if (region.getAlternateNames()[i].trim().replaceAll("\\d+", "").length() > 0)
+                {
+                    saveAltername(geoid, names[i]);
+                }
+            }
+        }
+    }
+
+
+    /**
+     * Save alternate name of a location with the given geonameid
+     *
+     * @param locationId    geoname id of the location
+     * @param altername     alternate name of the loction
+     * @throws SQLException             
+     * @throws ClassNotFoundException
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     * @throws InterruptedException
+     */
+    public void saveAltername(int locationId, String altername)
+            throws SQLException, ClassNotFoundException,
+            InstantiationException, IllegalAccessException,
+            InterruptedException
+    {
+        CallableStatement cs = null;
+        int retry = 0;
+        boolean failed = true;
+        while (failed) // database connection failure, then retry
+        {
+            try
+            {
+                cs = localProcedures.get("save_location_alternate_name");
+
+                cs.setInt(1, locationId);
+                cs.setNString(2, altername);
+                cs.setObject(3, new Date(BotRunEntity.getInstance().getRunDate()));
+
+                cs.execute();
+
+                failed = false;
+            }
+            catch (SQLException sex)
+            {
+                if (retry < 1)
+                {
+                    BotDao.getInstance().saveEvent(
+                        new BotEventEntity(BotEventSeverity.ERROR,
+                        "Error saving alternate names",
+                        "Failed to save alternate names: " + locationId + "-"
+                        + altername + "; " + sex.toString(),
+                        System.currentTimeMillis()));
+                    
+                    prepareLocal();
+                    retry++;
+                }
+                else
+                {
+                    throw sex;
+                }
+            }
+        }
+    }
+
+
+    /**
+     * Get location name used in URL from the real location name
+     * 
+     * @param name      location name
+     *
+     * @return          Url used in URL query
+     */
+    private String toUrl(String name)
+    {
+        name = name.replaceAll("\\s+", "_");
+        name = name.replace("\'", "");
+        name = name.replace("-", "");
+        return name;
+    }
+}

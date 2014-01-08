@@ -1,0 +1,206 @@
+package com.boryi.bots.usjobs.base;
+
+import java.util.Hashtable;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.ArrayList;
+import java.io.UnsupportedEncodingException;
+
+import org.apache.http.client.CookieStore;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.cookie.BasicClientCookie;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.protocol.HTTP;
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+
+import com.boryi.bots.base.BotDataEntity;
+
+/**
+ * USJobs Site
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Hang Su
+ * @version 1.0
+ * @since December 2009
+ */
+public class USJobsSite extends BotDataEntity
+{
+    protected USJobsRequestParameters parameters;
+    protected int id;
+    protected String site;
+    protected String url;
+    protected String httpMethod;
+    protected CookieStore cookies;
+    
+    private static USJobsSite instance;
+    
+    
+    /**
+     * Default constructor
+     */
+    public USJobsSite()
+    {
+        initialize();
+    }
+    
+    
+    /**
+     * Constructor
+     * 
+     * @param id            Site id
+     * @param site          Site name
+     * @param url           Site url
+     * @param httpMethod    Method for http request
+     * @param parameters    Http request parameters names
+     * @param cookies       Cookies set
+     */
+    public USJobsSite(int id, 
+                       String site, 
+                       String url, 
+                       String httpMethod, 
+                       Hashtable<String, String> parameters, 
+                       Hashtable<String, String> cookies) throws Exception
+    {
+        initialize();
+        
+        instance.id = id;
+        instance.site = site;
+        instance.url = url;
+        instance.httpMethod = httpMethod;
+        instance.parameters = new USJobsRequestParameters(parameters);
+        
+        instance.cookies = new BasicCookieStore();
+        
+        Enumeration<String> names = cookies.keys();
+        while (names.hasMoreElements())
+        {
+            String name = names.nextElement();
+            String value = cookies.get(name);
+            instance.cookies.addCookie(new BasicClientCookie(name, value));
+        }
+    }
+
+    
+    /**
+     * Gets Id
+     * 
+     * @return  Site id
+     */
+    public int getId() 
+    {
+        return id;
+    }
+    
+
+    /**
+     * Gets site name
+     * 
+     * @return  Site name
+     */
+    public String getSite() 
+    {
+        return site;
+    }
+    
+
+    /**
+     * Cookies set
+     * 
+     * @return  Cookies set
+     */
+    public CookieStore getCookies() 
+    {
+        return cookies;
+    }
+    
+    
+    /**
+     * Gets singleton instance
+     * 
+     * @return An instance of this singleton
+     */
+    public static USJobsSite getInstance()
+    {        
+        return instance;
+    }
+    
+    
+    /**
+     * Prepares HttpPost or HttpGet for web request
+     * 
+     * @param sc    Search criteria to be searched for
+     * @param page  number of the next page
+     * @return      HttpUriRequest object
+     */
+    public HttpUriRequest prepareRequest(USJobsSearchCriteriaEntity sc, int page)
+            throws UnsupportedEncodingException
+    {
+        if (httpMethod.equalsIgnoreCase("POST"))
+        {
+            return preparePost(sc);
+        }
+        
+        return prepareGet(sc);
+    }
+    
+    
+    /**
+     * Prepares HttpPost for web request
+     * 
+     * @param sc    Search criteria to be searched for
+     * @param page  number of the next page
+     * @return      HttpPost object
+     */
+    protected HttpPost preparePost(USJobsSearchCriteriaEntity sc)
+            throws UnsupportedEncodingException
+    {
+        Hashtable<String, String> data = parameters.populatePostWebData(sc);
+        
+        List<NameValuePair> nvps = new ArrayList<NameValuePair>();
+        
+        Enumeration<String> names = data.keys();
+        while (names.hasMoreElements())
+        {
+            String name = names.nextElement();
+            String value = data.get(name);
+            
+            nvps.add(new BasicNameValuePair(name, value));
+        }
+        
+        HttpPost httpost = new HttpPost(url);
+        httpost.setEntity(new UrlEncodedFormEntity(nvps, HTTP.UTF_8));
+        
+        return httpost;
+    }
+    
+    
+    /**
+     * Prepares HttpGet for web request
+     * 
+     * @param sc    Search criteria to be searched for
+     * @param page  number of the next page
+     * @return      HttpGet object
+     */
+    protected HttpGet prepareGet(USJobsSearchCriteriaEntity sc)
+            throws UnsupportedEncodingException
+    {
+        return new HttpGet(url + "?" + parameters.populateGetWebData(sc));
+    }
+    
+    
+    /**
+     * Initializes USJobsSite object
+     */
+    private void initialize()
+    {
+        if (instance == null)
+        {
+            instance = this;
+        }
+    }
+}

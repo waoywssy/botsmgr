@@ -1,0 +1,73 @@
+package com.boryi.bots.usjobs.base;
+
+import com.boryi.bots.base.BotDataEntity;
+
+/**
+ * Keywords Entity
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Hang Su
+ * @version 1.0
+ * @since December 2009
+ */
+public class USJobsKeywordsEntity extends BotDataEntity
+{
+    private int id;
+    private String keywords;
+    private String excludedWords;
+    
+    
+    /**
+     * Default constructor
+     */
+    public USJobsKeywordsEntity()
+    {
+    }
+    
+    
+    /**
+     * Constructor
+     * 
+     * @param id            Id of this keywords-excluded words pair
+     * @param keywords      Keywords to be searched for
+     * @param excludedWords Words to be excluded from the searching
+     */
+    public USJobsKeywordsEntity(int id, String keywords, String excludedWords)
+    {
+        this.id = id;
+        this.keywords = keywords;
+        this.excludedWords = excludedWords != null ? excludedWords : null;
+    }
+    
+    
+    /**
+     * Gets Id
+     * 
+     * @return  Id of the keywords-excludedWords pair
+     */
+    public int getId()
+    {
+        return id;
+    }
+
+    /**
+     * Gets keywords
+     * 
+     * @return  Keywords to be searched for
+     */
+    public String getKeywords() 
+    {
+        return keywords;
+    }
+
+    /**
+     * Gets excluded words
+     * 
+     * @return  Words to be excluded from the search
+     */
+    public String getExcludedWords() 
+    {
+        return excludedWords;
+    }
+}

@@ -1,0 +1,156 @@
+-- mysql -u root -p suhang
+
+-- --------------------------------------------------------
+--
+-- Stored procedures for `qa_statistic_qst`
+--
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `monster_qa_analyze`()
+BEGIN
+    DECLARE botId INT DEFAULT 1000;
+    DECLARE jbsId INT DEFAULT 1000;
+    DECLARE tskId INT DEFAULT 1000;
+    DECLARE numberOfErrors INT DEFAULT 0;
+    DECLARE numberOfFatals INT DEFAULT 0;
+    DECLARE numberOfWarnings INT DEFAULT 0;
+    DECLARE lastRunID INT;
+	DECLARE outputs VARCHAR(8000) DEFAULT NULL;
+    
+    SELECT MAX(rns_id) INTO lastRunID 
+        FROM bot_central.runs_rns 
+        WHERE rns_bts_id = botId
+              AND rns_jbs_id = jbsId
+              AND rns_tsk_id = tskId;
+
+    SELECT COUNT(*) INTO numberOfWarnings
+        FROM bot_central.events_vnt 
+        WHERE vnt_rns_id = lastRunID 
+              AND vnt_bts_id = botId
+              AND vnt_jbs_id = jbsId
+              AND vnt_tsk_id = tskId
+              AND vnt_severity = 2;
+
+    SELECT COUNT(*) INTO numberOfErrors
+        FROM bot_central.events_vnt 
+        WHERE vnt_rns_id = lastRunID 
+              AND vnt_bts_id = botId
+              AND vnt_jbs_id = jbsId
+              AND vnt_tsk_id = tskId
+              AND vnt_severity = 3;
+
+    SELECT COUNT(*) INTO numberOfFatals
+        FROM bot_central.events_vnt 
+        WHERE vnt_rns_id = lastRunID 
+              AND vnt_bts_id = botId
+              AND vnt_jbs_id = jbsId
+              AND vnt_tsk_id = tskId
+              AND vnt_severity = 4;
+
+    IF numberOfErrors > 0 OR numberOfFatals > 0 THEN
+        SET outputs = CONCAT('Monster QA analyze result: \n\r', numberOfWarnings, ' Warnings \n\r');
+        SET outputs = CONCAT(outputs, numberOfErrors, ' Errors \n\r');
+        SET outputs = CONCAT(outputs, numberOfFatals, ' Fatals \n\r');
+    END IF;
+
+	SELECT outputs;
+END;//
+
+
+DELIMITER //
+CREATE DEFINER=`botmaster`@`localhost` PROCEDURE `monster_qa_compute_statistic`()
+BEGIN
+    DECLARE siteId INT DEFAULT 1;
+    DECLARE botId INT DEFAULT 1000;
+    DECLARE jbsId INT DEFAULT 1000;
+    DECLARE tskId INT DEFAULT 1000;
+    DECLARE lastRunID INT;
+    DECLARE lastRunDate TIMESTAMP;
+    DECLARE totalJobs INT;
+    DECLARE totalJobsWithoutLocation INT;
+    DECLARE minDatePosted TIMESTAMP;
+    DECLARE maxDatePosted TIMESTAMP;
+    DECLARE minLenJobTitle INT;
+    DECLARE maxLenJobTitle INT;
+    DECLARE minLenJobCompany INT;
+    DECLARE maxLenJobCompany INT;
+    DECLARE minLenJobUrl INT;
+    DECLARE maxLenJobUrl INT;
+
+    SELECT st_id INTO siteId
+        FROM sites_st
+        WHERE st_site LIKE '%Monster.com%';
+    
+    SELECT MAX(rns_id), MAX(rns_start) INTO lastRunID, lastRunDate
+        FROM bot_central.runs_rns 
+        WHERE rns_bts_id = botId
+              AND rns_jbs_id = jbsId
+              AND rns_tsk_id = tskId;
+
+    SELECT COUNT(DISTINCT jbs_site_job_id) INTO totalJobs
+        FROM jobs_jbs
+        WHERE jbs_st_id = 1
+              AND jbs_lastseen = lastRunDate;
+
+    SELECT COUNT(DISTINCT jbs_site_job_id) INTO totalJobsWithoutLocation
+        FROM jobs_jbs
+        WHERE jbs_st_id = 1
+              AND jbs_lastseen = lastRunDate
+              AND jbs_lct_id IS NULL;
+
+    SELECT MIN(jbs_date_posted) INTO minDatePosted
+        FROM jobs_jbs
+        WHERE jbs_st_id = 1
+              AND jbs_lastseen = lastRunDate;
+
+    SELECT MAX(jbs_date_posted) INTO maxDatePosted
+        FROM jobs_jbs
+        WHERE jbs_st_id = 1
+              AND jbs_lastseen = lastRunDate;
+
+    SELECT MIN(LENGTH(jbs_title)) INTO minLenJobTitle
+        FROM jobs_jbs
+        WHERE jbs_st_id = 1
+              AND jbs_lastseen = lastRunDate;
+
+    SELECT MAX(LENGTH(jbs_title)) INTO maxLenJobTitle
+        FROM jobs_jbs
+        WHERE jbs_st_id = 1
+              AND jbs_lastseen = lastRunDate;
+
+    SELECT MIN(LENGTH(jbs_company)) INTO minLenJobCompany
+        FROM jobs_jbs
+        WHERE jbs_st_id = 1
+              AND jbs_lastseen = lastRunDate;
+
+    SELECT MAX(LENGTH(jbs_company)) INTO maxLenJobCompany
+        FROM jobs_jbs
+        WHERE jbs_st_id = 1
+              AND jbs_lastseen = lastRunDate;
+
+    SELECT MIN(LENGTH(jbs_url)) INTO minLenJobUrl
+        FROM jobs_jbs
+        WHERE jbs_st_id = 1
+              AND jbs_lastseen = lastRunDate;
+
+    SELECT MAX(LENGTH(jbs_url)) INTO maxLenJobUrl
+        FROM jobs_jbs
+        WHERE jbs_st_id = 1
+              AND jbs_lastseen = lastRunDate;
+
+    INSERT INTO qa_statistic_qst VALUES (botId, 
+                                        jbsId, 
+                                        tskId, 
+                                        lastRunID, 
+                                        NULL, 
+                                        totalJobs, 
+                                        totalJobsWithoutLocation,
+                                        maxDatePosted,
+                                        minDatePosted,
+                                        maxLenJobTitle,
+                                        minLenJobTitle,
+                                        maxLenJobCompany,
+                                        minLenJobCompany,
+                                        maxLenJobUrl,
+                                        minLenJobUrl);
+END;//

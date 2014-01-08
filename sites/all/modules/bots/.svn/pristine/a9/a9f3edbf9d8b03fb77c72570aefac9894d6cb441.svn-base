@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j='http://jakarta.apache.org/log4j/'>
+  <appender name="boryi.bot" class="org.apache.log4j.FileAppender">
+      <param name="File" value="${logDir}/boryi.bot.log"/>
+      <layout class="org.apache.log4j.PatternLayout">
+        <param name="ConversionPattern" value="%d{ISO8601} %p | %t | %C | %L | %M | %m%n"/>
+      </layout>
+  </appender>
+  
+  <logger name="boryi.bot.logger">
+    <level value="info" />
+    <appender-ref ref="boryi.bot" />
+  </logger>
+  
+</log4j:configuration>

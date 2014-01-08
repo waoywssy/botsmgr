@@ -1,0 +1,10 @@
+USE bot_central;
+
+INSERT INTO `bots_bts` (`bts_id`, `bts_name`, `bts_version`, `bts_description`, `bts_enabled`, `bts_created`, `bts_last_updated`, `bts_path`, `bts_file`) VALUES
+(1000, 'USJobs', '1.0', 'Searches US jobs', 1, '2009-12-30 21:14:49', '2009-12-30 21:14:56', '-', '-');
+
+INSERT INTO `jobs_jbs` (`jbs_bts_id`, `jbs_id`, `jbs_name`, `jbs_description`, `jbs_enabled`, `jbs_created`, `jbs_last_updated`, `jbs_path`, `jbs_file`) VALUES
+(1000, 1001, 'USJobs - Monster', 'Gets jobs from Monster.com', 1, '2009-12-30 21:19:54', '2009-12-30 21:19:57', '-', '-');
+
+INSERT INTO `tasks_tsk` (`tsk_bts_id`, `tsk_jbs_id`, `tsk_id`, `tsk_name`, `tsk_description`, `tsk_enabled`, `tsk_created`, `tsk_last_updated`, `tsk_minute`, `tsk_hour`, `tsk_dom`, `tsk_month`, `tsk_dow`, `tsk_running`, `tsk_srv_id`) VALUES
+(1000, 1001, 1011, 'Test', '-', 1, '2009-12-30 21:32:56', '2009-12-30 21:32:59', NULL, NULL, NULL, NULL, NULL, 0, -1);

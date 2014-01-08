@@ -1,0 +1,37 @@
+-- mysql -u root -p bot_central
+
+DROP PROCEDURE IF EXISTS `insert_server`;
+DROP PROCEDURE IF EXISTS `update_server`;
+DROP PROCEDURE IF EXISTS `update_server_status`;
+DROP PROCEDURE IF EXISTS `get_servers`;
+DROP PROCEDURE IF EXISTS `get_server`;
+DROP PROCEDURE IF EXISTS `get_server_status`;
+
+DROP PROCEDURE IF EXISTS `insert_bot`;
+DROP PROCEDURE IF EXISTS `update_bot`;
+DROP PROCEDURE IF EXISTS `get_bots`;
+DROP PROCEDURE IF EXISTS `get_bot`;
+DROP PROCEDURE IF EXISTS `delete_bots`;
+
+DROP PROCEDURE IF EXISTS `insert_job`;
+DROP PROCEDURE IF EXISTS `update_job`;
+DROP PROCEDURE IF EXISTS `get_jobs`;
+DROP PROCEDURE IF EXISTS `get_job`;
+DROP PROCEDURE IF EXISTS `delete_jobs`;
+
+DROP PROCEDURE IF EXISTS `insert_task`;
+DROP PROCEDURE IF EXISTS `update_task`;
+DROP PROCEDURE IF EXISTS `get_tasks`;
+DROP PROCEDURE IF EXISTS `get_task`;
+DROP PROCEDURE IF EXISTS `delete_tasks`;
+DROP PROCEDURE IF EXISTS `update_task_status`;
+DROP PROCEDURE IF EXISTS `get_task_status`;
+
+DROP PROCEDURE IF EXISTS `insert_run`;
+DROP PROCEDURE IF EXISTS `update_run`;
+DROP PROCEDURE IF EXISTS `get_runs`;
+DROP PROCEDURE IF EXISTS `delete_runs`;
+
+DROP PROCEDURE IF EXISTS `insert_event`;
+DROP PROCEDURE IF EXISTS `get_events`;
+DROP PROCEDURE IF EXISTS `delete_events`;

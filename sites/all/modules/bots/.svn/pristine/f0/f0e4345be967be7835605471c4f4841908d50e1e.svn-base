@@ -1,0 +1,103 @@
+package com.boryi.bots.usjobs.monster;
+
+import java.util.Hashtable;
+import java.util.Enumeration;
+import java.io.UnsupportedEncodingException;
+
+import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+
+import com.boryi.bots.usjobs.base.USJobsSite;
+import com.boryi.bots.usjobs.base.USJobsSearchCriteriaEntity;
+import com.boryi.bots.usjobs.base.USJobsRequestParameters;
+
+/**
+ * Monster Site
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Hang Su
+ * @version 1.0
+ * @since December 2009
+ */
+public class MonsterSite extends USJobsSite
+{
+    @Override
+    protected HttpPost preparePost(USJobsSearchCriteriaEntity sc)
+            throws UnsupportedEncodingException
+    {
+        Hashtable<String, String> postWebData = parameters.populatePostWebData(sc);
+        
+        String queryString = postWebData.get("queryString");
+        queryString = StringEscapeUtils.unescapeHtml(queryString);
+        queryString = queryString.replace(USJobsRequestParameters.PARAM_NAME_KEYWORDS, sc.getKeywords().getKeywords().replace(" ", "%20"));
+        queryString = queryString.replace(USJobsRequestParameters.PARAM_NAME_EXCLUDED_WORDS, sc.getKeywords().getExcludedWords().replace(" ", "%20"));
+        queryString = queryString.replace(USJobsRequestParameters.PARAM_NAME_LOCATION, sc.getLocation().toString().replace(" ", "%20"));
+        queryString = queryString.replace(USJobsRequestParameters.PARAM_NAME_RADIUS, String.valueOf(sc.getMiles()));
+        queryString = queryString.replace(USJobsRequestParameters.PARAM_NAME_PAGE, String.valueOf(sc.getCurrentPage()));
+        queryString = queryString.replace(USJobsRequestParameters.PARAM_NAME_JOBS_PER_PAGE, String.valueOf(sc.getJobsPerPage()));
+        postWebData.put("queryString", queryString);
+        
+        HttpPost httpost = new HttpPost(url);
+        httpost.setEntity(new StringEntity(hashtableToSimpleJSON(postWebData)));
+        
+        return httpost;
+    }
+    
+    
+    /**
+     * Converts name-value pairs to a simple JSON object
+     * 
+     * @param params    Name value pairs to be converted to a simple JSON object
+     * @return          String representation of a simple JSON object
+     */
+    private String hashtableToSimpleJSON(Hashtable<String, String> params)
+    {
+        String json = "{";
+        
+        Enumeration<String> names = params.keys();
+        while (names.hasMoreElements())
+        {
+            String name = names.nextElement();
+            String value = params.get(name);
+            
+            json += "\"" + name + "\":";
+            boolean parsed = false;
+            try
+            {
+                Integer.parseInt(value);
+                json += value + ",";
+                parsed = true;
+            }
+            catch (Exception ex)
+            { }
+            if (!parsed)
+            {
+                try
+                {
+                    Double.parseDouble(value);
+                    json += value + ",";
+                    parsed = true;
+                }
+                catch (Exception ex)
+                { }
+            }
+            if (!parsed && (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")))
+            {
+                json += value + ",";
+                parsed = true;
+            }
+            if (!parsed)
+            {
+                json += "\"" + value + "\",";
+            }
+        }
+        
+        json += "}";
+        
+        json = json.replace(",}", "}");
+        
+        return json;
+    }
+}

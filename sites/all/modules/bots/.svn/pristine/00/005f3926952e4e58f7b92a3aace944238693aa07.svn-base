@@ -1,0 +1,352 @@
+-- phpMyAdmin SQL Dump
+-- version 3.2.4
+-- http://www.phpmyadmin.net
+--
+-- Host: localhost
+-- Generation Time: Dec 28, 2009 at 03:44 AM
+-- Server version: 5.0.51
+-- PHP Version: 5.2.12
+
+SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8 */;
+
+--
+-- Database: `usjobs`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `bot_runs_btrns`
+--
+
+CREATE TABLE IF NOT EXISTS `bot_runs_btrns` (
+  `btrns_id` int(4) NOT NULL auto_increment COMMENT 'Id of the run in the bot database',
+  `btrns_bts_id` int(4) NOT NULL COMMENT 'Id of the bot',
+  `btrns_jbs_id` int(4) NOT NULL COMMENT 'Id of the job of the bot',
+  `btrns_tsk_id` int(4) NOT NULL COMMENT 'Id of the task of the job of the bot. -1 means no task',
+  `btrns_rns_id` int(4) NOT NULL COMMENT 'Id of the run of the task of the job of the bot.',
+  `btrns_rns_start` datetime NOT NULL COMMENT 'Run date and time',
+  PRIMARY KEY  (`btrns_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Bot runs table' AUTO_INCREMENT=1 ;
+
+--
+-- Dumping data for table `bot_runs_btrns`
+--
+
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `checklist_chc`
+--
+
+CREATE TABLE IF NOT EXISTS `checklist_chc` (
+  `chc_bts_id` int(4) NOT NULL COMMENT 'Id of the bot',
+  `chc_jbs_id` int(4) NOT NULL COMMENT 'Id of the job of the bot',
+  `chc_tsk_id` int(4) NOT NULL COMMENT 'Id of the task of the job of the bot. -1 means no task',
+  `chc_url` varchar(328) collate utf8_unicode_ci NOT NULL COMMENT 'URL to be crawled by the run of the job of the bot',
+  `chc_stage` int(4) NOT NULL default '0' COMMENT 'Crawling stage of the URL, e.g. top category stage, sub-category stage, product stage, product detail stage ',
+  `chc_id` int(4) NOT NULL COMMENT 'Id related to the URL, e.g. product Id, category Id',
+  `chc_status` tinyint(1) NOT NULL default '-1' COMMENT '-1: not checked, 0: checking, 1: checked',
+  `chc_level` int(4) NOT NULL default '0',
+  PRIMARY KEY  (`chc_bts_id`,`chc_jbs_id`,`chc_tsk_id`,`chc_url`, `chc_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Checklist table';
+
+--
+-- Dumping data for table `checklist_chc`
+--
+
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `city_cty`
+--
+
+CREATE TABLE IF NOT EXISTS `city_cty` (
+  `cty_id` int(11) NOT NULL auto_increment COMMENT 'Id of the city',
+  `cty_city` varchar(50) NOT NULL COMMENT 'City name',
+  PRIMARY KEY  (`cty_id`),
+  UNIQUE KEY `cty_city` (`cty_city`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COMMENT='City' AUTO_INCREMENT=4 COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `city_cty`
+--
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `jobs_jbs`
+--
+
+CREATE TABLE IF NOT EXISTS `jobs_jbs` (
+  `jbs_id` int(11) NOT NULL auto_increment COMMENT 'Id of the job',
+  `jbs_st_id` int(11) NOT NULL COMMENT 'Site id',
+  `jbs_site_job_id` varchar(50) NOT NULL COMMENT 'Job id on site',
+  `jbs_date_posted` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Date and time when this job was posted',
+  `jbs_title` varbinary(128) NOT NULL COMMENT 'Job title',
+  `jbs_url` varchar(512) default NULL COMMENT 'URL that locates jobs detail information page',
+  `jbs_company` varbinary(128) NOT NULL COMMENT 'Company name',
+  `jbs_lct_id` int(11) NULL COMMENT 'Location of this job',
+  `jbs_firstseen` timestamp NOT NULL default '0000-00-00 00:00:00' COMMENT 'The first date and time when this job was seen',
+  `jbs_lastseen` timestamp NOT NULL default '0000-00-00 00:00:00' COMMENT 'The last date and time when this job was lseen',
+  PRIMARY KEY  (`jbs_id`),
+  UNIQUE KEY `jbs_st_id` (`jbs_st_id`,`jbs_site_job_id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COMMENT='Jobs' AUTO_INCREMENT=4 COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `jobs_jbs`
+--
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `keywords_jobs_kwdjbs`
+--
+
+CREATE TABLE IF NOT EXISTS `keywords_jobs_kwdjbs` (
+  `kwdjbs_kwdlct_id` int(11) NOT NULL COMMENT 'Id of keywords – Location relation',
+  `kwdjbs_jbs_id` int(11) NOT NULL COMMENT 'Id of the job',
+  `kwdjbs_miles` int(11) default NULL COMMENT 'Miles between the specified location and the address of job',
+  `kwdjbs_firstseen` timestamp NOT NULL default CURRENT_TIMESTAMP COMMENT 'The first date and time this searching was created',
+  `kwdjbs_lastseen` timestamp NOT NULL default '0000-00-00 00:00:00' COMMENT 'The last date and time this searching was created',
+  UNIQUE KEY `kwdjbs_kwd_id` (`kwdjbs_kwdlct_id`,`kwdjbs_jbs_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Keywords – Jobs' COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `keywords_jobs_kwdjbs`
+--
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `keywords_kwd`
+--
+
+CREATE TABLE IF NOT EXISTS `keywords_kwd` (
+  `kwd_id` int(11) NOT NULL auto_increment COMMENT 'Id of the keywords set',
+  `kwd_set` varbinary(128) NOT NULL COMMENT 'A set of keywords',
+  `kwd_inserted` timestamp NOT NULL default CURRENT_TIMESTAMP COMMENT 'Date and time when this keyword set was inserted',
+  PRIMARY KEY  (`kwd_id`),
+  UNIQUE KEY `kwd_set` (`kwd_set`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COMMENT='Keyword set' AUTO_INCREMENT=42 COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `keywords_kwd`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `keywords_location_kwdlct`
+--
+
+CREATE TABLE IF NOT EXISTS `keywords_location_kwdlct` (
+  `kwdlct_id` int(11) NOT NULL auto_increment COMMENT 'Id of this keywords-location relation',
+  `kwdlct_kp_id` int(11) NOT NULL COMMENT 'Id of the keywords-excludedWords pair',
+  `kwdlct_lr_id` int(11) NOT NULL COMMENT 'Id of the location - Radius',
+  PRIMARY KEY  (`kwdlct_id`),
+  UNIQUE KEY `kwdlct_kp_id` (`kwdlct_kp_id`,`kwdlct_lr_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Keywords – Location relation' COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `keywords_location_kwdlct`
+--
+
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `keywords_pairs_kp`
+--
+
+CREATE TABLE IF NOT EXISTS `keywords_pairs_kp` (
+  `kp_id` int(11) NOT NULL auto_increment COMMENT 'Id of the keywords pair',
+  `kp_kwd_id` int(11) NOT NULL COMMENT 'Id of the keyword',
+  `kp_xkwd_id` int(11) default NULL COMMENT 'Id of the excluded keyword',
+  PRIMARY KEY  (`kp_id`),
+  UNIQUE KEY `kp_kwd_id` (`kp_kwd_id`,`kp_xkwd_id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COMMENT='Keywords – Excluded Keywords' AUTO_INCREMENT=8 COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `keywords_pairs_kp`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `locations_lct`
+--
+
+CREATE TABLE IF NOT EXISTS `locations_lct` (
+  `lct_id` int(11) NOT NULL auto_increment COMMENT 'Id of the location',
+  `lct_cty_id` int(11) NOT NULL COMMENT 'Id of the city',
+  `lct_stt_id` int(11) NOT NULL COMMENT 'Id of the state',
+  `lct_zipcode` char(10) NULL COMMENT 'Zip code',
+  `lct_url` varchar(512) NOT NULL COMMENT 'URL can be used to access detail geography information about this location',
+  PRIMARY KEY  (`lct_id`),
+  UNIQUE KEY `lct_cty_id` (`lct_cty_id`,`lct_stt_id`, `lct_zipcode`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COMMENT='Locations' AUTO_INCREMENT=11 COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `locations_lct`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `locations_radius_lr`
+--
+
+CREATE TABLE IF NOT EXISTS `locations_radius_lr` (
+  `lr_id` int(11) NOT NULL auto_increment COMMENT 'Id of the location-radius pair',
+  `lr_lct_id` int(11) NOT NULL COMMENT 'Id of the location',
+  `lr_radius` int(11) NOT NULL COMMENT 'A specified radius used to limit the searching range',
+  PRIMARY KEY  (`lr_id`),
+  UNIQUE KEY `lr_lct_id` (`lr_lct_id`,`lr_radius`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Locations – Radius' AUTO_INCREMENT=1 COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `locations_radius_lr`
+--
+
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sites_st`
+--
+
+CREATE TABLE IF NOT EXISTS `sites_st` (
+  `st_id` int(11) NOT NULL auto_increment COMMENT 'Id of the job site',
+  `st_site` varchar(50) NOT NULL COMMENT 'Job site name',
+  `st_url` varchar(512) NOT NULL COMMENT 'URL of job site',
+  `st_parameters` varchar(512) default NULL COMMENT 'Appended parameters for site URL',
+  `st_http_method` varchar(10) NOT NULL default 'GET' COMMENT 'HTTP GET/POST method used to access content from job site',
+  `st_cookie_name` varchar(512) NOT NULL COMMENT 'Necessary cookies for accessing the job site',
+  `st_cookie_value` varchar(512) NOT NULL COMMENT 'Cookie values',
+  PRIMARY KEY  (`st_id`),
+  UNIQUE KEY `st_site` (`st_site`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Job Sites' AUTO_INCREMENT=1  COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `sites_st`
+--
+
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `state_stt`
+--
+
+CREATE TABLE IF NOT EXISTS `state_stt` (
+  `stt_id` int(11) NOT NULL auto_increment COMMENT 'Id of the state',
+  `stt_state` varchar(50) NOT NULL COMMENT 'State name',
+  PRIMARY KEY  (`stt_id`),
+  UNIQUE KEY `stt_state` (`stt_state`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COMMENT='State' AUTO_INCREMENT=4  COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `state_stt`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users_keywords_usrkwd`
+--
+
+CREATE TABLE IF NOT EXISTS `users_keywords_usrkwd` (
+  `usrkwd_usr_id` int(11) NOT NULL COMMENT 'Id of the user',
+  `usrkwd_kp_id` int(11) NOT NULL COMMENT 'Id of the keywords pair',
+  `usrkwd_enabled` tinyint(1) NOT NULL default '1' COMMENT 'Whether this user-keyword relation has been enabled',
+  `usrkwd_inserted` timestamp NOT NULL default CURRENT_TIMESTAMP COMMENT 'Date and time this record was inserted',
+  `usrkwd_removed` timestamp NOT NULL default '0000-00-00 00:00:00' COMMENT 'Date and time this record was removed',
+  UNIQUE KEY `usrkwd_usr_id` (`usrkwd_usr_id`,`usrkwd_kp_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `users_keywords_usrkwd`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users_locations_usrlct`
+--
+
+CREATE TABLE IF NOT EXISTS `users_locations_usrlct` (
+  `usrlct_usr_id` int(11) NOT NULL COMMENT 'Id of the user',
+  `usrlct_lr_id` int(11) NOT NULL COMMENT 'Locations – Radius',
+  `usrlct_enabled` tinyint(1) NOT NULL default '1' COMMENT 'Whether this user-location relation has been enabled',
+  `usrlct_inserted` timestamp NOT NULL default CURRENT_TIMESTAMP COMMENT 'Date and time this record was inserted',
+  `usrlct_removed` timestamp NOT NULL default '0000-00-00 00:00:00' COMMENT 'Date and time this record was removed',
+  UNIQUE KEY `usrlct_usr_id` (`usrlct_usr_id`,`usrlct_lr_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `users_locations_usrlct`
+--
+
+--
+-- Table structure for table `web_statistic_wbs`
+--
+
+CREATE TABLE IF NOT EXISTS `web_statistic_wbs` (
+  `wbs_btrns_id` int(4) NOT NULL COMMENT 'Id of the run in the bot database',
+  `wbs_is_resume` tinyint(1) NOT NULL default '0' COMMENT 'Whether the run is resumed',
+  `wbs_start` datetime NOT NULL COMMENT 'Start time of web crawling',
+  `wbs_end` datetime NOT NULL COMMENT 'End time of web crawling',
+  `wbs_duration` decimal(10,2) NOT NULL default '0.00' COMMENT 'Duration of web crawling in hours',
+  `wbs_actual_duration` decimal(10,2) NOT NULL default '0.00' COMMENT 'Actual web traffic time in hours',
+  `wbs_page_hits_total` int(8) NOT NULL default '0' COMMENT 'Total page hits on the web site',
+  `wbs_kb_downloaded_total` int(8) NOT NULL default '0' COMMENT 'Total kilobytes downloaded from the web site, including headers and contents',
+  `wbs_kb_uploaded_total` int(8) NOT NULL default '0' COMMENT 'Total kilobytes uploaded to the web site, including headers and contents',
+  `wbs_b_request_header_total` int(8) NOT NULL default '0' COMMENT 'Total bytes of request headers',
+  `wbs_b_request_content_total` int(8) NOT NULL default '0' COMMENT 'Total bytes of request contents',
+  `wbs_b_response_header_total` int(8) NOT NULL default '0' COMMENT 'Total bytes of response headers',
+  `wbs_b_response_content_total` int(8) NOT NULL default '0' COMMENT 'Total bytes of response contents',
+  `wbs_max_page_hits_per_hour` int(4) NOT NULL default '1' COMMENT 'Maximum page hits per hour allowed to the web site',
+  `wbs_max_kb_per_hour` int(4) NOT NULL default '1' COMMENT 'Maximum kilobytes downloaded per hour allowed from the web site',
+  `wbs_threads` int(4) NOT NULL COMMENT 'Number of web crawling threads used',
+  PRIMARY KEY  (`wbs_btrns_id`,`wbs_start`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Web statistic table';
+
+--
+-- Dumping data for table `web_statistic_wbs`
+--
+
+--
+-- Table structure for table `qa_statistic_qst`
+--
+
+CREATE TABLE IF NOT EXISTS `qa_statistic_qst` (
+  `qst_bt_id` int(11) NOT NULL COMMENT 'bots id',
+  `qst_jb_id` int(11) NOT NULL COMMENT 'job id',
+  `qst_tsk_id` int(11) NOT NULL COMMENT 'task id',
+  `qst_rn_id` int(11) NOT NULL COMMENT 'run id',
+  `qst_is_valid` tinyint(4) default '0' COMMENT 'whether this run is valid',
+  `qst_total_jobs` int(11) COMMENT 'total number of found jobs',
+  `qst_total_jobs_without_location` int(11) COMMENT 'total number of found jobs without location information',
+  `qst_max_date_posted` timestamp COMMENT 'The lastest date when the job was posted',
+  `qst_min_date_posted` timestamp COMMENT 'The earliest day when the job was posted',
+  `qst_max_len_job_title` int(11),
+  `qst_min_len_job_title` int(11),
+  `qst_max_len_job_company` int(11),
+  `qst_min_len_job_company` int(11),
+  `qst_max_len_job_ url` int(11),
+  `qst_min_len_job_url` int(11),
+  PRIMARY KEY  (`qst_bt_id`,`qst_jb_id`,`qst_tsk_id`,`qst_rn_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='QA Statistics for USJobs';
+
+
+CREATE TABLE IF NOT EXISTS `user_email_usrml` (
+  `usrml_uid` int(11) NOT NULL COMMENT 'User id',
+  `usrml_accept_email` tinyint(4) NOT NULL default '1' COMMENT 'whether this user accept routine email',
+  PRIMARY KEY  (`usrml_uid`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Email acceptance information for user';

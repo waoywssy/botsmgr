@@ -1,0 +1,8 @@
+-- mysql -u root -p bot_hnrcsc
+TRUNCATE TABLE `bot_runs_btrns`;
+TRUNCATE TABLE `checklist_chc`;
+TRUNCATE TABLE `companies_cmp`;
+TRUNCATE TABLE `company_job_cjb`;
+TRUNCATE TABLE `jobs_jbs`;
+TRUNCATE TABLE `qa_statistic_qst`;
+TRUNCATE TABLE `web_statistic_wbs`;

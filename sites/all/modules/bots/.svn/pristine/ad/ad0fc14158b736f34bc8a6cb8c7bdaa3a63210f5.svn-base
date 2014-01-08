@@ -1,0 +1,2 @@
+INSERT INTO sites_st (st_site, st_url, st_parameters, st_http_method)
+VALUES ('Monster.com', 'http://jobsearch.monster.com/Services/JobSearch.asmx/Search', 'pageName;queryString;sortField;autoSortByDate', 'POST')

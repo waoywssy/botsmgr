@@ -1,0 +1,122 @@
+<?php
+function get_dump()
+{
+	db_set_active('bot_central');
+
+	$bid = $_REQUEST['bid'];
+	$jid = $_REQUEST['jid'];
+	$from = $_REQUEST['from'];
+	$to = $_REQUEST['to'];
+
+	if (!empty($from) && !ereg("^([1|2][0-9]{3})-([0-9]{1,2})-([0-9]{1,2})$", $from, $regs)) {
+		$from = null;
+	}
+	if (!empty($to) && !ereg("^([1|2][0-9]{3})-([0-9]{1,2})-([0-9]{1,2})$", $to, $regs)) {
+		$to = null;
+	}
+
+	$dump = $_REQUEST['dump'];
+	if (!isset($_REQUEST['bid'])){exit(0);}
+	if (!isset($_REQUEST['jid'])){exit(0);}
+	if (!isset($_REQUEST['dump'])){exit(0);}
+
+	$dbname = '';
+	// connect to the MySQL database server and get database name
+	$sql = "SELECT jbs_dbname FROM jobs_jbs WHERE jbs_bts_id = $bid AND jbs_id = $jid";
+	$result = db_query($sql);
+	$dbname = db_result($result);
+
+	// connect to the MySQL database server and get bots path
+	$sql = "SELECT bts_path FROM bots_bts WHERE bts_id = $bid";
+	$result = db_query($sql);
+	$path = db_result($result);
+
+	$appendix = 'v';
+	if ($dump == 0)
+	{
+		$sql = "SELECT rns_tsk_id as tsk, max(rns_id) as rns FROM runs_rns WHERE rns_bts_id = $bid AND rns_jbs_id = $jid group by rns_tsk_id order by rns_tsk_id";
+		$result = db_query($sql);
+		while ($row = db_fetch_array($result))
+		{
+			$appendix .= '_' . $row['tsk'] . '_' . $row['rns'];
+		}
+	}
+	db_set_active($dbname);
+
+	$path_data = $path . 'data/';
+	$path_schema = $path . 'sql/';
+	$path_script = $path . 'script/';
+
+	$data_zip = $dbname . '-data-' . $appendix . '.zip';
+	$schema_zip = $dbname . '-schema.zip';
+
+	if ($dump == 0)
+	{
+		try
+		{
+			chdir($path_data);
+		}
+		catch(Exception $e)
+		{
+			print $e->getMessage(); 
+			exit(); 
+		}
+
+	 	if(!file_exists($data_zip))
+		{
+			$query = "SELECT * INTO OUTFILE '" . $path_data . "BestBuy_TVs.txt' FIELDS TERMINATED BY '\\t' OPTIONALLY ENCLOSED BY '' ESCAPED BY '\\\\' LINES TERMINATED BY '\\r\\n' FROM (SELECT 'CategoryName', 'Brand', 'Model', 'Sku', 'Title', 'Resolution', 'RefreshRate', 'Connected', 'Size', '3D', 'Url', 'FirstFound', 'LastFound' UNION (SELECT B.CategoryName, A.Brand, A.Model, A.Sku, A.Title, A.Resolution, A.RefreshRate, A.Connected, A.Size, A.3D, A.Url, A.FirstFound, A.LastFound FROM BestBuy_TVs AS A LEFT JOIN BestBuy_Categories AS B ON A.CategoryId = B.Id ORDER BY B.CategoryName, A.LastFound DESC, A.FirstFound DESC)) AS A0";
+			db_query($query);
+                        $query = "SELECT * INTO OUTFILE '" . $path_data . "BestBuy_TV_Prices.txt' FIELDS TERMINATED BY '\\t' OPTIONALLY ENCLOSED BY '' ESCAPED BY '\\\\' LINES TERMINATED BY '\\r\\n' FROM (SELECT 'PriceDate', 'CategoryName', 'Brand', 'Model', 'Sku', 'Title', 'Resolution', 'RefreshRate', 'Connected', 'Size', '3D', 'Url', 'ProductFirstFound', 'ProductLastFound', 'SalePrice', 'Price' UNION (SELECT C.RunDate AS PriceDate, B.CategoryName, A.Brand, A.Model, A.Sku, A.Title, A.Resolution, A.RefreshRate, A.Connected, A.Size, A.3D, A.Url, A.FirstFound AS ProductFirstFound, A.LastFound AS ProductLastFound, C.SalePrice, C.Price FROM BestBuy_TV_Prices AS C LEFT JOIN BestBuy_TVs AS A ON C.Sku = A.Sku LEFT JOIN BestBuy_Categories AS B ON A.CategoryId = B.Id ORDER BY PriceDate DESC, B.CategoryName, A.LastFound DESC, A.FirstFound DESC)) AS A0";
+                        db_query($query);
+
+                        $query = "SELECT * INTO OUTFILE '" . $path_data . "BestBuy_HDDs.txt' FIELDS TERMINATED BY '\\t' OPTIONALLY ENCLOSED BY '' ESCAPED BY '\\\\' LINES TERMINATED BY '\\r\\n' FROM (SELECT 'CategoryName', 'Brand', 'Model', 'Sku', 'Title', 'Capacity', 'Type', 'Url', 'FirstFound', 'LastFound' UNION (SELECT B.CategoryName, A.Brand, A.Model, A.Sku, A.Title, A.Capacity, A.Type, A.Url, A.FirstFound, A.LastFound	FROM BestBuy_HDDs AS A LEFT JOIN BestBuy_Categories AS B ON A.CategoryId = B.Id ORDER BY B.CategoryName, A.LastFound DESC, A.FirstFound DESC)) AS A0";
+                        db_query($query);
+                        $query = "SELECT * INTO OUTFILE '" . $path_data . "BestBuy_HDD_Prices.txt' FIELDS TERMINATED BY '\\t' OPTIONALLY ENCLOSED BY '' ESCAPED BY '\\\\' LINES TERMINATED BY '\\r\\n' FROM (SELECT 'PriceDate', 'CategoryName', 'Brand', 'Model', 'Sku', 'Title', 'Capacity', 'Type', 'Url', 'ProductFirstFound', 'ProductLastFound', 'SalePrice', 'Price' UNION (SELECT C.RunDate AS PriceDate, B.CategoryName, A.Brand, A.Model, A.Sku, A.Title, A.Capacity, A.Type, A.Url, A.FirstFound AS ProductFirstFound, A.LastFound AS ProductLastFound, C.SalePrice, C.Price FROM BestBuy_HDD_Prices AS C LEFT JOIN BestBuy_HDDs AS A ON C.Sku = A.Sku LEFT JOIN BestBuy_Categories AS B ON A.CategoryId = B.Id ORDER BY PriceDate DESC, B.CategoryName, A.LastFound DESC, A.FirstFound DESC)) AS A0";
+                        db_query($query);
+
+                        $query = "SELECT * INTO OUTFILE '" . $path_data . "BestBuy_Computers.txt' FIELDS TERMINATED BY '\\t' OPTIONALLY ENCLOSED BY '' ESCAPED BY '\\\\' LINES TERMINATED BY '\\r\\n' FROM (SELECT 'CategoryName', 'Brand', 'Model', 'Sku', 'Title', 'Processor', 'Memory', 'HardDiskSize', 'Color', 'Display', 'OS', 'Description', 'Url', 'FirstFound', 'LastFound' UNION (SELECT B.CategoryName, A.Brand, A.Model, A.Sku, A.Title, A.Processor, A.Memory, A.HardDiskSize, A.Color, A.Display, A.OS, A.Description, A.Url, A.FirstFound, A.LastFound FROM BestBuy_Computers AS A LEFT JOIN BestBuy_Categories AS B ON A.CategoryId = B.Id ORDER BY B.CategoryName, A.LastFound DESC, A.FirstFound DESC)) AS A0";
+                        db_query($query);
+                        $query = "SELECT * INTO OUTFILE '" . $path_data . "BestBuy_Computer_Prices.txt' FIELDS TERMINATED BY '\\t' OPTIONALLY ENCLOSED BY '' ESCAPED BY '\\\\' LINES TERMINATED BY '\\r\\n' FROM (SELECT 'PriceDate', 'CategoryName', 'Brand', 'Model', 'Sku', 'Title', 'Processor', 'Memory', 'HardDiskSize', 'Color', 'Display', 'OS', 'Description', 'Url', 'ProductFirstFound', 'ProductLastFound', 'SalePrice', 'Price' UNION (SELECT C.RunDate AS PriceDate, B.CategoryName, A.Brand, A.Model, A.Sku, A.Title, A.Processor, A.Memory, A.HardDiskSize, A.Color, A.Display, A.OS, A.Description, A.Url, A.FirstFound AS ProductFirstFound, A.LastFound AS ProductLastFound, C.SalePrice, C.Price FROM BestBuy_Computer_Prices AS C LEFT JOIN BestBuy_Computers AS A ON C.Sku = A.Sku LEFT JOIN BestBuy_Categories AS B ON A.CategoryId = B.Id ORDER BY PriceDate DESC, B.CategoryName, A.LastFound DESC, A.FirstFound DESC)) AS A0";
+                        db_query($query);
+
+			shell_exec('zip -l ' . $data_zip . ' *.txt');
+			shell_exec('rm *.txt');
+		}
+	}
+	else
+	{
+		try
+		{
+	        	chdir($path_schema);
+		}
+		catch (Exception $e)
+		{
+			print $e->getMessage();
+			exit();
+		}
+
+	        if(!file_exists($schema_zip))
+        	{
+                	// zip the schema scripts if it doesn't exist
+        	        shell_exec('zip -l  ' . $schema_zip . ' *.sql');
+	        }
+	}
+
+	db_set_active('default');
+
+	header('Content-Type: application/zip');
+	header('Cache-Control: max-age=0');
+	if ($dump == 0)
+	{
+		// data
+		header('Content-Disposition: attachment; filename="' . $data_zip . '"');
+		readfile($path_data . $data_zip);
+	}
+	else
+	{
+		// schema
+		header('Content-Disposition: attachment; filename="' . $schema_zip . '"');
+		readfile($path_schema . $schema_zip);
+	}
+}
+?>

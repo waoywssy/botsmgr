@@ -1,0 +1,263 @@
+var targetPath = 'bots_data';
+var imgPath = 'sites/projects.boryi.com.clsa/modules/bots/image/';
+
+function ReloadByBot(botId)
+{
+	$('#botsList').jqGrid('setSelection',botId); 
+	
+	$("#botid").attr("value", botId);
+	$('#jobsList').setGridParam({url:targetPath + '&type=job&bid=' + $("#botid").val()}).trigger("reloadGrid");
+	$('#tasksList').setGridParam({url:targetPath + '&type=task&bid=' + $("#botid").val() + '&jid=' + $("#jobid").val()}).trigger("reloadGrid");
+	$('#runsList').setGridParam({url:targetPath + '&type=run&bid=' + $("#botid").val() + '&jid=' + $("#jobid").val() + '&tid=' + $("#taskid").val()}).trigger("reloadGrid");
+	$('#eventsList').setGridParam({url:targetPath + '&type=event&bid=' + $("#botid").val() + '&jid=' + $("#jobid").val() + '&tid=' + $("#taskid").val() + '&rid=' + $("#runid").val()}).trigger("reloadGrid");
+}
+
+function ReloadByJob(jobId)
+{
+	$('#jobsList').jqGrid('setSelection',jobId); 
+	$("#jobid").attr("value", jobId);
+	$('#tasksList').setGridParam({url:targetPath + '&type=task&bid=' + $("#botid").val() + '&jid=' + $("#jobid").val()}).trigger("reloadGrid");
+	$('#runsList').setGridParam({url:targetPath + '&type=run&bid=' + $("#botid").val() + '&jid=' + $("#jobid").val() + '&tid=' + $("#taskid").val()}).trigger("reloadGrid");
+	$('#eventsList').setGridParam({url:targetPath + '&type=event&bid=' + $("#botid").val() + '&jid=' + $("#jobid").val() + '&tid=' + $("#taskid").val() + '&rid=' + $("#runid").val()}).trigger("reloadGrid");
+}
+
+function ReloadByTask(taskId)
+{
+	$('#tasksList').jqGrid('setSelection',taskId); 
+	$("#taskid").attr("value", taskId);
+	$('#runsList').setGridParam({url:targetPath + '&type=run&bid=' + $("#botid").val() + '&jid=' + $("#jobid").val() + '&tid=' + $("#taskid").val()}).trigger("reloadGrid");
+	$('#eventsList').setGridParam({url:targetPath + '&type=event&bid=' + $("#botid").val() + '&jid=' + $("#jobid").val() + '&tid=' + $("#taskid").val() + '&rid=' + $("#runid").val()}).trigger("reloadGrid");
+}
+
+function ReloadByRun(runId)
+{
+	$('#runsList').jqGrid('setSelection',runId); 
+	$("#runid").attr("value", runId);
+	$('#eventsList').setGridParam({url:targetPath + '&type=event&bid=' + $("#botid").val() + '&jid=' + $("#jobid").val() + '&tid=' + $("#taskid").val() + '&rid=' + $("#runid").val()}).trigger("reloadGrid");
+}
+
+function RunManually(e, botId, jobId)
+{
+	$(e).next().show();
+	$(e).remove();
+	$.ajax({
+			url: 'bots_run' + '&bid=' + $("#botid").val() + '&jid=' + $("#jobid").val(), 
+			success: function(response){
+//				alert(response);
+				ReloadByJob(jobId);
+      }});
+}
+function DumpBot(botId, jobId)
+{
+	$('#dialog').dialog({width:'auto'});
+	
+	$("#dgdata").button().unbind('click').bind('click', function(){
+		var url = 'bots_dump&bid='+botId+'&jid='+jobId+'&dump=0' + '&from=' + $("#datefrom").datepicker().val() + '&to=' + $("#dateto").datepicker().val();
+		window.open(url);
+	});
+	$("#dgschema").button().unbind('click').bind('click', function(){
+			var url = 'bots_dump&bid='+botId+'&jid='+jobId+'&dump=1';
+			window.open(url);
+		});
+	$("#ui-dialog-title-dialog").html('Dump job data - JobId: ' + jobId);
+}
+
+jQuery().ready(function (){ 
+	$("#tabs" ).tabs();
+	$("#dialog").hide();	
+	$("#datefrom").datepicker({
+		dateFormat: 'yy-mm-dd',
+		//beforeShow: function() {$('#ui-datepicker-div').css("z-index","9999!important;"); }
+	});
+	$("#dateto" ).datepicker({
+		dateFormat: 'yy-mm-dd',
+		//beforeShow: function() {$('#ui-datepicker-div').css("z-index","9999!important;"); }
+	});
+	var today = new Date();
+	var a_week_ago = new Date();
+	a_week_ago.setDate(a_week_ago.getDate() -7);
+
+	$("#datefrom").datepicker('setDate', a_week_ago);
+	$("#dateto").datepicker('setDate', today);
+
+	// Bots list
+	var botsView = jQuery("#botsList").jqGrid({
+		url:targetPath + "&type=bot", 
+		datatype: "json", 
+		colNames:['Bot Id','Bot Name', 'Version', 'Description','Enabled','Created','Last Updated','Path','File'], 
+		colModel:[ 
+				{name:'bts_id',index:'bts_id', width:25}, 
+				{name:'bts_name',index:'bts_name', width:75}, 
+				{name:'bts_version',index:'bts_version', width:22}, 
+				{name:'bts_description',index:'bts_description', width:90}, 
+				{name:'bts_enabled',index:'bts_enabled', width:22, align:"center"}, 
+				{name:'bts_created',index:'bts_created', width:60}, 
+				{name:'bts_last_updated',index:'bts_last_updated', width:60}, 
+				{name:'bts_path',index:'bts_path', width:40, hidden:true}, 
+				{name:'bts_file',index:'bts_file', width:40, hidden:true}], 
+		rowNum:10,
+		autowidth: true,
+		rowList:[10,20,30],
+		pager: $('#botsPager'),
+		gridComplete: function(){
+			var ids = $("#botsList").jqGrid('getDataIDs');
+			if (ids.length > 0)
+			{
+				$("#botid").attr("value", ids[0]);
+				$('#botsList').jqGrid('setSelection',ids[0]);
+			}
+		},
+		ondblClickRow: function(id){
+			ReloadByBot(id);
+		},
+		viewrecords: true, 
+		sortname: 'bts_id',
+		sortorder: "asc", 
+		caption:"View Bots"}
+	);
+	botsView.navGrid('#botsPager',{search:false,edit:false,add:false,del:false}) 
+	
+	// Jobs list
+	var jobsView = jQuery("#jobsList").jqGrid({
+		url:targetPath + '&type=job&bid=' + $("#botid").val(), 
+		datatype: "json", 
+		colNames:['Actions','Job Id','Job Name', 'Description','Enabled','Created','Last Updated','Path', 'File',  'DB Name', 'count'], 
+		colModel:[ 
+				{name:'act',index:'act', width:30, align:'center',sortable:false},
+				{name:'jbs_id',index:'jbs_id', width:25}, 
+				{name:'jbs_name',index:'jbs_name', width:75}, 
+				{name:'jbs_description',index:'jbs_description', width:75}, 
+				{name:'jbs_enabled',index:'jbs_enabled', width:33, align:"center"}, 
+				{name:'jbs_created',index:'jbs_created', width:60}, 
+				{name:'jbs_last_updated',index:'jbs_last_updated', width:60}, 
+				{name:'jbs_path',index:'jbs_path', width:40, hidden:true}, 
+				{name:'jbs_file',index:'jbs_file', width:40, hidden:true},
+				{name:'jbs_dbname',index:'jbs_file', width:40},
+				{name:'count',index:'count', width:40, hidden:true}, ], 
+		rowNum:10, 
+		autowidth: true, 
+		rowList:[10,20,30], 
+		pager: $('#jobsPager'), 
+		loadComplete: function(){ 
+			var ids = $("#jobsList").jqGrid('getDataIDs');
+			for(var i=0;i < ids.length;i++){
+				var ret = $("#jobsList").jqGrid('getRowData', i + 1);
+				var cl = ids[i];
+				var disabled = (ret.count > 0);
+				
+				var ce = (disabled?"":"<img src='" + imgPath + "play.png' class='jobIcon play'  onclick=\"RunManually(this, '" + $("#botid").val() + "', '"+cl+"');\" />");
+				var ce1 = "<img src='" + imgPath + "play1.png' class='jobIcon play1'  " + (disabled?"":"style='display:none;'") + " />";
+				var de = "<img src='" + imgPath + "save.png' class='jobIcon' onclick=\"DumpBot('"+$("#botid").val()+"', '"+cl+"');\"  />";
+				
+				$("#jobsList").jqGrid('setRowData',ids[i],{act:ce + ce1 + de});
+				if (i==0){
+					$("#jobid").attr("value", ids[0]);
+					$('#jobsList').jqGrid('setSelection',ids[0]);
+				}
+			}
+		},
+		ondblClickRow: function(id){
+			ReloadByJob(id);
+		},
+		viewrecords: true, 
+		sortname: 'jbs_id', 
+		sortorder: "asc", 
+		caption:"View Jobs"}
+	);
+	jobsView.navGrid('#jobsPager',{search:false,edit:false,add:false,del:false});
+	
+		
+	// Tasks list
+	var tasksView = jQuery("#tasksList").jqGrid({
+		url:targetPath + '&type=task', 
+		datatype: "json", 
+		colNames:['Task Id','Task Name', 'Description','Enabled','Created','Last Updated','Minute', 'Hour', 'DOM', 'Month', 'DOW', 'Status','Server'], 
+		colModel:[ 
+				{name:'tsk_id',index:'tsk_id', width:40}, 
+				{name:'tsk_name',index:'tsk_name', width:55}, 
+				{name:'tsk_description',index:'tsk_description', width:75}, 
+				{name:'tsk_enabled',index:'tsk_enabled', width:33, align:"center"}, 
+				{name:'tsk_created',index:'tsk_created', width:60}, 
+				{name:'tsk_last_updated',index:'tsk_last_updated', width:60}, 
+				{name:'tsk_minute',index:'tsk_minute', width:20}, 
+				{name:'tsk_hour',index:'tsk_hour', width:20}, 
+				{name:'tsk_dom',index:'tsk_dom', width:20}, 
+				{name:'tsk_month',index:'tsk_month', width:20}, 
+				{name:'tsk_dow',index:'tsk_dow', width:20}, 
+				{name:'tsk_running',index:'tsk_running', width:20}, 
+				{name:'tsk_srv_id',index:'tsk_srv_id', width:20}], 
+		rowNum:10, 
+		autowidth: true, 
+		rowList:[10,20,30], 
+		pager: $('#tasksPager'), 
+		gridComplete: function(){
+			var ids = $("#tasksList").jqGrid('getDataIDs');
+			if (ids.length > 0){
+				$("#taskid").attr("value", ids[0]);
+				$('#tasksList').jqGrid('setSelection',ids[0]);
+			}
+		},
+		ondblClickRow: function(id){
+			ReloadByTask(id);
+		},
+		viewrecords: true, 
+		sortname: 'tsk_id', 
+		sortorder: "asc", 
+		caption:"View Tasks"}
+	);
+	tasksView.navGrid('#tasksPager',{search:false,edit:false,add:false,del:false});
+	
+	// Runs list
+	var runsView = jQuery("#runsList").jqGrid({
+		url:targetPath + '&type=run',
+		datatype: "json",
+		colNames:['Run Id','Start', 'End', 'Duration(hour)','Result','Server'],
+		colModel:[
+				{name:'rns_id',index:'rns_id', width:30, align:'right'},
+				{name:'rns_start',index:'rns_start', width:60, align:'center'},
+				{name:'rns_end',index:'rns_end', width:60, align:'center'},
+				{name:'rns_duration',index:'rns_duration', width:40, align:'right'},
+				{name:'rns_result',index:'rns_result', width:33, align:'center'},
+				{name:'rns_srv_id',index:'rns_srv_id', width:20}],
+		rowNum:10, 
+		autowidth: true, 
+		rowList:[10,20,30], 
+		pager: $('#runsPager'), 
+		gridComplete: function(){
+			var ids = $("#runsList").jqGrid('getDataIDs');
+			if (ids.length > 0){
+				$("#runid").attr("value", ids[0]);
+				$('#runsList').jqGrid('setSelection',ids[0]);
+			}
+		},
+		ondblClickRow: function(id){
+			ReloadByRun(id);
+		},
+		viewrecords: true,
+		sortname: 'rns_id',
+		sortorder: "desc",
+		caption:"View Runs"}
+	);
+	runsView.navGrid('#runsPager',{search:false,edit:false,add:false,del:false});
+	
+	// Events list
+	var eventsView = jQuery("#eventsList").jqGrid({
+		url:targetPath + '&type=event', 
+		datatype: "json", 
+		colNames:['EventTime','Subject', 'Detail', 'Severity'], 
+		colModel:[ 
+				{name:'vnt_datetime',index:'vnt_datetime', width:60, align:'center'}, 
+				{name:'vnt_subject',index:'vnt_subject', width:75}, 
+				{name:'vnt_detail',index:'vnt_detail', width:200}, 
+				{name:'vnt_severity',index:'vnt_severity', width:20}], 
+		rowNum:10, 
+		autowidth: true, 
+		rowList:[10,20,30], 
+		pager: jQuery('#eventsPager'), 
+		viewrecords: true, 
+		sortname: 'vnt_datetime', 
+		sortorder: "desc", 
+		caption:"View Events"}
+	);
+	eventsView.navGrid('#eventsPager',{search:false,edit:false,add:false,del:false});
+})

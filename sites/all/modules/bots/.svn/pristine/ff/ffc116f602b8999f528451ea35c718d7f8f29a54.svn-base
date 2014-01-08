@@ -1,0 +1,458 @@
+package com.boryi.bots.bestbuy;
+
+import com.boryi.bots.base.*;
+import java.math.BigDecimal;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.util.EntityUtils;
+
+/**
+ * Thread containing fields and methods to parse and save data from geoname
+ *
+ * <p><strong>Copyright 2007 - 2017 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Yang Song
+ * @version 1.0
+ * @since September 2009
+ */
+public class BestBuyWebThread extends BotWebThread
+{
+    /**
+     * Arraylist to hold tvs
+     */
+    private ProductsCollection products;
+    /**
+     * Maximum retry times if the site refuse to work.
+     */
+    private int maxRetries;
+    /**
+     * Domain of the site
+     */
+    private String domain;
+    /**
+     * Item listed per page
+     */
+    private int itemPerPage = 99;
+
+
+    /**
+     * Constructor
+     */
+    public BestBuyWebThread()
+    {
+        super();
+        checklist = new ArrayList<BotChecklistEntity>();
+
+        // set default language
+        String language = "en";
+        if(BotConfig.getInstance().getParams().containsKey("language"))
+        {
+            language = BotConfig.getInstance().getParams().get("language");
+        }
+
+        maxRetries = 5;
+        if(BotConfig.getInstance().getParams().containsKey("noServiceMaxRetry"))
+        {
+            try
+            {
+                maxRetries = Integer.parseInt(BotConfig.getInstance().
+                        getParams().get("noServiceMaxRetry"));
+            }
+            catch(Exception ex)
+            {
+                maxRetries = 5;
+            }
+        }
+    }
+
+    
+    @Override
+    public void parseWebData()
+    {
+        if (webData.contains("(+86) 731-8899-2840"))
+        {
+            try
+            {
+                ((BestBuyDao)(BestBuyDao.getInstance())).buildCheckList();
+            }
+            catch (Exception ex)
+            {
+                Logger.error("Failed to build checklist", ex.toString());
+            }
+        }
+        else
+        {
+            parseProducts(webData);
+        }
+    }
+
+
+    @Override
+    public void saveData()
+    {
+        if (!webData.contains("(+86) 731-8899-2840"))
+        {
+            saveProducts();
+
+            collectNextPages();
+        }
+        else
+        {
+            try
+            {
+                checklist = BestBuyDao.getInstance().getChecklist();
+            }
+            catch (Exception ex)
+            {
+                Logger.error("Failed to get checklist", ex.toString());
+            }
+        }
+    }
+
+
+    /**
+     * Parse and save country information
+     *
+     * @param countryXml xml string from the web servide from geonames.org
+     */
+    private void parseProducts(String productListPage)
+    {
+        products = new ProductsCollection(item.getStage());
+        
+        Pattern pattern = BotConfig.getInstance().getPatterns().get("GetProductItemSection");
+        Matcher matcher = pattern.matcher(webData);
+
+        int matchedItemsCount = 0;
+        while (matcher.find())
+        {
+            matchedItemsCount++;
+
+            String itemSectionString = matcher.group(0);
+            if (itemSectionString != null)
+            {
+                itemSectionString = itemSectionString.replace("&#174;", "®").replace("&#153;", "™").replace("&#8482;", "™");
+            }
+            Product product = getProduct(item.getId(), itemSectionString);
+
+            if (product != null && product.getModel() != null && product.getSku() != null)
+            {
+                products.Add(itemSectionString, product);
+            }
+        }
+        
+        if (matchedItemsCount > 0 && products.getProducts().size() > 0)
+        {
+            Logger.info("Matches: " + matchedItemsCount +
+                    "; Valid: "+ products.getProducts().size(),
+                    item.getUrl().toString());
+        }
+        else
+        {
+            Logger.error("Matches: " + matchedItemsCount +
+                    "; Valid: "+ products.getProducts().size(),
+                    item.getUrl().toString());
+        }
+    }
+
+
+    /**
+     * Get product matches
+     * 
+     * @param itemSectionString
+     * @return
+     */
+    private Product getProduct(int catId, String itemSectionString)
+    {
+        Pattern pattern = null;
+        Matcher matcher = null;
+        
+        String[] matches = null;
+
+        Long sku = null;
+        String title = null;
+        String model = null;
+        BigDecimal regularPrice = null;
+        BigDecimal salePrice = null;
+        String url = null;
+
+        // get title
+        pattern = BotConfig.getInstance().getPatterns().get("GetProductTitle");
+        matcher = pattern.matcher(itemSectionString);
+        if (matcher.find())
+        {
+            url = matcher.group(1) == null ? "" : matcher.group(1);
+            title = matcher.group(2) == null ? "" : matcher.group(2);
+
+            if (url != null)
+            {
+                url = "http://www.bestbuy.com" + url;
+            }
+        }
+        // get sku
+        pattern = BotConfig.getInstance().getPatterns().get("GetProductSku");
+        matcher = pattern.matcher(itemSectionString);
+        if (matcher.find())
+        {
+            String skuString = matcher.group(1) == null ? "" : matcher.group(1);
+            try
+            {
+                sku = Long.valueOf(skuString);
+            }
+            catch(Exception ex)
+            {
+                return null;
+            }
+        }
+        // get model
+        pattern = BotConfig.getInstance().getPatterns().get("GetProductModel");
+        matcher = pattern.matcher(itemSectionString);
+        if (matcher.find())
+        {
+            model = matcher.group(1) == null ? "" : matcher.group(1);
+        }
+        // get regular price
+        pattern = BotConfig.getInstance().getPatterns().get("GetProductRegularPrice");
+        matcher = pattern.matcher(itemSectionString);
+        if (matcher.find())
+        {
+            String rPrice = matcher.group(1) == null ? "" : matcher.group(1);
+            rPrice = rPrice.replace(",", "");
+            try
+            {
+                regularPrice = BigDecimal.valueOf(Double.parseDouble(rPrice));
+            }
+            catch(Exception ex)
+            {}
+        }
+        
+        salePrice = getProductSalePrice(itemSectionString);
+        
+        return new Product(sku, model, title,
+            regularPrice, salePrice, "", catId, url);
+    }
+
+
+    /**
+     * Save countries into database
+     */
+    private void saveProducts()
+    {
+        int count = products.getProducts().size();
+        int classId = products.getClassId();
+        
+        Product product = null;
+        BotChecklistEntity bce = null;
+
+        if (checklist==null)
+        {
+            checklist = new ArrayList<BotChecklistEntity>(count);
+        }
+
+        try
+        {
+            ((BestBuyDao)BestBuyDao.getInstance()).saveProducts(products);
+        }
+        catch (Exception ex)
+        {
+            Logger.error("Error saving products",
+                "Failed to save products: "
+                + products.getClassId() + "; " + ex.toString());
+        }
+    }
+
+    
+    /**
+     * Collect next pages
+     */
+    private void collectNextPages()
+    {
+        int pageNum = 1;
+
+        Pattern pattern = null;
+        Matcher matcher = null;
+
+        // get total count
+        pattern = BotConfig.getInstance().getPatterns().get("GetTotalCount");
+        matcher = pattern.matcher(this.webData);
+
+        int end = 0;
+        int total = 0;
+        if (matcher.find())
+        {
+            try
+            {
+                //start = matcher.group(1);
+                end = Integer.parseInt(matcher.group(2));
+                total = Integer.parseInt(matcher.group(3));
+            }
+            catch(Exception ex)
+            {
+                Logger.warn("Error parsing item list count",
+                        item.getUrl() + "; " + ex.toString());
+            }
+        }
+
+        if (end < total)
+        {
+            pageNum = end / itemPerPage + 1;
+
+            String url = item.getUrl().toString();
+            url= url.replaceAll("&nrp=\\d+", "");
+            url= url.replaceAll("&cp=\\d+", "");
+            
+            url += "&nrp=" + itemPerPage + "&cp=" + pageNum;
+
+            BotChecklistEntity bce = new BotChecklistEntity(
+                    URI.create(url),
+                    item.getStage(),
+                    item.getId(),
+                    item.getLevel());
+            checklist.add(bce);
+        }
+    }
+
+
+    /**
+     * Get product sale price(in list or in cart page)
+     * @param itemSectionString
+     * @return
+     */
+    private BigDecimal getProductSalePrice(String itemSectionString)
+    {
+        BigDecimal salePrice = null;
+        Pattern pattern = null;
+        Matcher matcher = null;
+        String sPrice = null;
+        try
+        {
+            // try to get product list sale price
+            pattern = BotConfig.getInstance().getPatterns().get("GetProductSalePrice");
+            matcher = pattern.matcher(itemSectionString);
+            if (matcher.find())
+            {
+                sPrice = matcher.group(1) == null ? "" : matcher.group(1);
+                sPrice = sPrice.replace(",", "");
+                if (sPrice.length() > 0)
+                {
+                    return BigDecimal.valueOf(Double.parseDouble(sPrice));
+                }
+            }
+            else
+            {
+                // see the cart price
+                pattern = BotConfig.getInstance().getPatterns().get("GetProductInCartSalePriceUrl");
+                matcher = pattern.matcher(itemSectionString);
+                if (matcher.find())
+                {
+                    // get popup link
+                    String popupLink = matcher.group(1);
+                    String page = null;
+                    if (popupLink != null)
+                    {
+                        popupLink = "http://www.bestbuy.com" + popupLink;
+                        page = downloadWebData(popupLink);
+                    }
+                    // get the page and parse the sale price
+                    if (page != null)
+                    {
+                        pattern = BotConfig.getInstance().getPatterns().get("GetProductInCartSalePrice");
+                        matcher = pattern.matcher(page);
+                        if (matcher.find())
+                        {
+                            sPrice = matcher.group(1) == null ? "" : matcher.group(1);
+                            sPrice = sPrice.replace(",", "");
+                            if (sPrice.length() > 0)
+                            {
+                                salePrice = BigDecimal.valueOf(Double.parseDouble(sPrice));
+                            }
+                        }
+                        else
+                        {
+                            try
+                            {
+                                BotDao.getInstance().saveEvent(
+                                    new BotEventEntity(BotEventSeverity.WARNING,
+                                    "Failed to match in-cart-price",
+                                    popupLink,
+                                    System.currentTimeMillis()));
+                            }
+                            catch(Exception sex)
+                            {
+                                BotBase.logger.warn(
+                                    "Failed to match in-cart-price: " + popupLink);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    Logger.warn("Failed to match in-cart-price url", itemSectionString);
+                }
+            }
+        }
+        catch(Exception ex)
+        {
+            Logger.warn("Exception getting in-cart-price", itemSectionString);
+        }
+        return salePrice;
+    }
+
+
+    /**
+     * Get web page or xml according to given url string.  Before getting the
+     * web page, which contains data information or checklist items, it may
+     * crawl other web pages and parsed for parameters.  For example, a site
+     * needs login to get data list and the next stage of checklist items.
+     *
+     * Proxy is considered. Web statistic is computed. Sleeping may needed.
+     */
+    private String downloadWebData(String url) throws InterruptedException, Exception
+    {
+        HttpGet httpget = new HttpGet(url);
+        String page = null;
+        int retry = 0;
+        boolean failed = true;
+        while (failed)
+        {
+            try
+            {
+                time[0] = 0l;
+                time[1] = 0l;
+
+                HttpResponse response = httpclient.execute(httpget);
+                HttpEntity entity = response.getEntity();
+
+                if (entity != null)
+                {
+                    page = EntityUtils.toString(entity);
+                    failed = false;
+                }
+                else
+                {
+                    page = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (retry < BotConfig.getInstance().getWebRetry().getRetry())
+                {
+                    Logger.error("Error downloading page",
+                        "Failed to build checklists: " + "; " + ex.toString());
+                    
+                    Thread.sleep(sleepingTime.getSleepingTime(retry));
+                    retry++;
+                }
+                else
+                {
+                    throw ex;
+                }
+            }
+        }
+        return page;
+    }
+}

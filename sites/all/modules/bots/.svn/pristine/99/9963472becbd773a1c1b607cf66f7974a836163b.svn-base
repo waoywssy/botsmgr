@@ -1,0 +1,42 @@
+DELETE FROM `checklist_chc`;
+DELETE FROM `bot_runs_btrns`;
+DELETE FROM `web_statistic_wbs`;
+
+DELETE FROM `qa_statistic_qst`;
+
+ALTER TABLE bot_runs_btrns auto_increment = 1;
+
+DELETE FROM `city_cty`;
+ALTER TABLE city_cty auto_increment = 1;
+
+DELETE FROM `jobs_jbs`;
+ALTER TABLE jobs_jbs auto_increment = 1;
+
+DELETE FROM `keywords_jobs_kwdjbs`;
+
+DELETE FROM `keywords_pairs_kp`;
+ALTER TABLE keywords_pairs_kp auto_increment = 1;
+
+DELETE FROM `keywords_kwd`;
+ALTER TABLE keywords_kwd auto_increment = 1;
+
+DELETE FROM `locations_lct`;
+ALTER TABLE locations_lct auto_increment = 1;
+
+DELETE FROM `sites_st`;
+ALTER TABLE sites_st auto_increment = 1;
+
+DELETE FROM `state_stt`;
+ALTER TABLE state_stt auto_increment = 1;
+
+DELETE FROM `users_keywords_usrkwd`;
+
+DELETE FROM `users_locations_usrlct`;
+
+DELETE FROM `locations_radius_lr`;
+ALTER TABLE locations_radius_lr auto_increment = 1;
+
+DELETE FROM `keywords_location_kwdlct`;
+ALTER TABLE keywords_location_kwdlct auto_increment = 1;
+
+DELETE FROM `user_email_usrml`;

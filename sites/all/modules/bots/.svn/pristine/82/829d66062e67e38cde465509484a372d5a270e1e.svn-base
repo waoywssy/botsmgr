@@ -1,0 +1,484 @@
+-- mysql -u root -p bot_bestbuy
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS `build_checklist`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE build_checklist(jid int, tid int)
+BEGIN
+    INSERT INTO `BestBuy_CheckList`
+    SELECT jid, tid, Url, Id, ClassId, -1 FROM BestBuy_Categories
+    WHERE Enabled = 1;
+END$$
+
+DROP PROCEDURE IF EXISTS `clear_checklist`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE clear_checklist(bid int, jid int, tid int)
+BEGIN
+    DELETE FROM `BestBuy_CheckList` WHERE JobId = jid AND TaskId = tid;
+END$$
+
+DROP PROCEDURE IF EXISTS `delete_qa_statistic`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE delete_qa_statistic(brid int)
+BEGIN
+    DELETE FROM `qa_statistic_qst` WHERE qst_btrns_id = brid;
+END$$
+
+DROP PROCEDURE IF EXISTS `get_checkinglist`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE get_checkinglist(bid int, jid int, tid int)
+BEGIN
+
+SELECT url AS url, CategoryId AS id, className FROM `BestBuy_CheckList` AS A
+LEFT OUTER JOIN BestBuy_Category_Classes AS B ON A.ClassId = B.ClassId
+WHERE JobId = jid AND TaskId = tid AND Status = 0;
+END$$
+
+DROP PROCEDURE IF EXISTS `get_checklist`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE get_checklist(bid int, jid int, tid int)
+BEGIN
+SELECT url AS url, classId, CategoryId, 0 AS id FROM `BestBuy_CheckList` AS A
+WHERE JobId = jid AND TaskId = tid AND status = -1;
+END$$
+
+DROP PROCEDURE IF EXISTS `get_resumed_run`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE get_resumed_run(bid int, jid int, tid int)
+BEGIN
+    IF EXISTS (SELECT * FROM `BestBuy_CheckList` WHERE JobId = jid AND TaskId = tid AND Status <= 0) THEN
+        SELECT MAX(btrns_id) INTO @brid FROM bot_runs_btrns WHERE btrns_bts_id = bid AND btrns_jbs_id = jid AND btrns_tsk_id = tid;
+        SELECT @brid AS brid, btrns_rns_id AS rid, btrns_rns_start AS rstart FROM bot_runs_btrns WHERE btrns_id = @brid;
+    ELSE
+        SELECT 0 AS brid, 0 AS rid;
+    END IF;
+END$$
+
+DROP PROCEDURE IF EXISTS `insert_bot_run`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE insert_bot_run(bid int, jid int, tid int, rid int, rstart datetime)
+BEGIN
+    IF NOT EXISTS (SELECT * FROM bot_runs_btrns WHERE btrns_bts_id = bid AND btrns_jbs_id = jid AND btrns_tsk_id = tid AND btrns_rns_id = rid) THEN
+        INSERT `bot_runs_btrns` (`btrns_bts_id`, `btrns_jbs_id`, `btrns_tsk_id`, `btrns_rns_id`, `btrns_rns_start`) VALUES (bid, jid, tid, rid, rstart);
+    END IF;
+    SELECT btrns_id AS id FROM bot_runs_btrns WHERE btrns_bts_id = bid AND btrns_jbs_id = jid AND btrns_tsk_id = tid AND btrns_rns_id = rid;
+END$$
+
+DROP PROCEDURE IF EXISTS `insert_checkitem`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE insert_checkitem(bid int, jid int, tid int, surl varchar(512), stage int, id int, level int)
+BEGIN
+    IF surl != '' AND NOT EXISTS (SELECT * FROM BestBuy_CheckList WHERE JobId = jid AND TaskId = tid AND Url = BINARY surl) THEN
+        INSERT `BestBuy_CheckList` (`JobId`, `TaskId`, `Url`, `CategoryId`, `ClassId`, `Status`)
+	VALUES (jid, tid, surl, id, stage, -1);
+    END IF;
+END$$
+
+DROP PROCEDURE IF EXISTS `insert_qa_statistic`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE insert_qa_statistic(brid int, total int, total_distinct int, total_nulls int, average decimal(18,4), qmin decimal(18,4), qmax decimal(18,4))
+BEGIN
+    IF NOT EXISTS (SELECT * FROM qa_statistic_qst WHERE qst_btrns_id = brid) THEN
+        INSERT `qa_statistic_qst` (`qst_btrns_id`, `qst_is_valid`, `qst_total`, `qst_total_distinct`, `qst_total_nulls`, `qst_average`, `qst_min`, `qst_max`) VALUES (brid, 0, total, total_distinct, total_nulls, average, qmin, qmax);
+    END IF;
+END$$
+
+DROP PROCEDURE IF EXISTS `insert_web_statistic`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE insert_web_statistic(brid int, resume tinyint(1), wstart datetime, wend datetime, duration decimal(10,2), actual_duration decimal(10,2), page_hits_total int(8), kb_downloaded_total int(8), kb_uploaded_total int(8), b_request_header_total int(8), b_request_content_total int(8), b_response_header_total int(8), b_response_content_total int(8), max_page_hits_per_hour int(4), max_kb_per_hour int(4), threads int(4))
+BEGIN
+    IF NOT EXISTS (SELECT * FROM web_statistic_wbs WHERE wbs_btrns_id = brid AND wbs_start = wstart) THEN
+        INSERT `web_statistic_wbs` (`wbs_btrns_id`, `wbs_is_resume`, `wbs_start`, `wbs_end`, `wbs_duration`, `wbs_actual_duration`, `wbs_page_hits_total`, `wbs_kb_downloaded_total`, `wbs_kb_uploaded_total`, `wbs_b_request_header_total`, `wbs_b_request_content_total`, `wbs_b_response_header_total`, `wbs_b_response_content_total`, `wbs_max_page_hits_per_hour`, `wbs_max_kb_per_hour`, `wbs_threads`) VALUES (brid, resume, wstart, wend, duration, actual_duration, page_hits_total, kb_downloaded_total, kb_uploaded_total, b_request_header_total, b_request_content_total, b_response_header_total, b_response_content_total, max_page_hits_per_hour, max_kb_per_hour, threads);
+    END IF;
+END$$
+
+DROP PROCEDURE IF EXISTS `qa_analyze`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE qa_analyze()
+BEGIN
+	DECLARE influence_number INT DEFAULT 10;
+
+	DECLARE bot_run_id INT;
+	DECLARE last_valid_bot_run_id INT;
+
+	DECLARE last_valid_total_tvs INT;
+	DECLARE last_valid_total_hdds INT;
+	DECLARE last_valid_total_computers INT;
+	DECLARE last_valid_total_tvs_price INT;
+	DECLARE last_valid_total_hdds_price INT;
+	DECLARE last_valid_total_computers_price INT;
+	DECLARE last_valid_total_null_tvs INT;
+	DECLARE last_valid_total_null_hdds INT;
+	DECLARE last_valid_total_null_computers INT;
+
+	DECLARE last_valid_tv_saleprice_avg DECIMAL(10, 2);
+	DECLARE last_valid_tv_saleprice_min DECIMAL(10, 2);
+	DECLARE last_valid_tv_saleprice_max DECIMAL(10, 2);
+	DECLARE last_valid_tv_price_avg DECIMAL(10, 2);
+	DECLARE last_valid_tv_price_min DECIMAL(10, 2);
+	DECLARE last_valid_tv_price_max DECIMAL(10, 2);
+	DECLARE last_valid_hdds_saleprice_avg DECIMAL(10, 2);
+	DECLARE last_valid_hdds_saleprice_min DECIMAL(10, 2);
+	DECLARE last_valid_hdds_saleprice_max DECIMAL(10, 2);
+	DECLARE last_valid_hdds_price_avg DECIMAL(10, 2);
+	DECLARE last_valid_hdds_price_min DECIMAL(10, 2);
+	DECLARE last_valid_hdds_price_max DECIMAL(10, 2);
+	DECLARE last_valid_computers_saleprice_avg DECIMAL(10, 2);
+	DECLARE last_valid_computers_saleprice_min DECIMAL(10, 2);
+	DECLARE last_valid_computers_saleprice_max DECIMAL(10, 2);
+	DECLARE last_valid_computers_price_avg DECIMAL(10, 2);
+	DECLARE last_valid_computers_price_min DECIMAL(10, 2);
+	DECLARE last_valid_computers_price_max DECIMAL(10, 2);
+
+	DECLARE total_tvs INT;
+	DECLARE total_hdds INT;
+	DECLARE total_computers INT;
+	DECLARE total_tvs_price INT;
+	DECLARE total_hdds_price INT;
+	DECLARE total_computers_price INT;
+	DECLARE total_null_tvs INT;
+	DECLARE total_null_hdds INT;
+	DECLARE total_null_computers INT;
+
+	DECLARE tv_saleprice_avg DECIMAL(10, 2);
+	DECLARE tv_saleprice_min DECIMAL(10, 2);
+	DECLARE tv_saleprice_max DECIMAL(10, 2);
+	DECLARE tv_price_avg DECIMAL(10, 2);
+	DECLARE tv_price_min DECIMAL(10, 2);
+	DECLARE tv_price_max DECIMAL(10, 2);
+	DECLARE hdds_saleprice_avg DECIMAL(10, 2);
+	DECLARE hdds_saleprice_min DECIMAL(10, 2);
+	DECLARE hdds_saleprice_max DECIMAL(10, 2);
+	DECLARE hdds_price_avg DECIMAL(10, 2);
+	DECLARE hdds_price_min DECIMAL(10, 2);
+	DECLARE hdds_price_max DECIMAL(10, 2);
+	DECLARE computers_saleprice_avg DECIMAL(10, 2);
+	DECLARE computers_saleprice_min DECIMAL(10, 2);
+	DECLARE computers_saleprice_max DECIMAL(10, 2);
+	DECLARE computers_price_avg DECIMAL(10, 2);
+	DECLARE computers_price_min DECIMAL(10, 2);
+	DECLARE computers_price_max DECIMAL(10, 2);
+
+	DECLARE is_valid BOOL DEFAULT 1;
+	DECLARE done INT DEFAULT 0;
+	DECLARE outputs VARCHAR(8000);
+	SET outputs = 'Qa analyze result: ';
+
+	IF (SELECT COUNT(*) FROM qa_statistic_qst WHERE qst_is_valid = 1) > 0 THEN
+		SELECT MAX(qst_btrns_id) INTO last_valid_bot_run_id FROM qa_statistic_qst WHERE qst_is_valid = 1;
+		IF (SELECT MAX(btrns_id) FROM bot_runs_btrns) > last_valid_bot_run_id THEN
+		BEGIN
+		DECLARE c_invalid_items CURSOR FOR
+			SELECT `qst_btrns_id`, `qst_total_tvs`, `qst_total_hdds`, `qst_total_computers`, 
+			`qst_price_tvs`, `qst_price_hdds`, `qst_price_computers`, 
+			`qst_null_tv_price`, `qst_null_hdd_price`, `qst_null_computer_price`, 
+			`qst_tv_saleprice_avg`, `qst_tv_saleprice_min`, `qst_tv_saleprice_max`, 
+			`qst_tv_price_avg`, `qst_tv_price_min`, `qst_tv_price_max`, 
+			`qst_hdds_saleprice_avg`, `qst_hdds_saleprice_min`, `qst_hdds_saleprice_max`, 
+			`qst_hdds_price_avg`, `qst_hdds_price_min`, `qst_hdds_price_max`, 
+			`qst_computers_saleprice_avg`, `qst_computers_saleprice_min`, `qst_computers_saleprice_max`, 
+			`qst_computers_price_avg`, `qst_computers_price_min`, `qst_computers_price_max`
+			FROM `qa_statistic_qst` 
+			WHERE qst_btrns_id > last_valid_bot_run_id AND qst_is_valid = 0 
+			ORDER BY qst_btrns_id;
+
+		DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+		OPEN c_invalid_items;
+				REPEAT
+					FETCH c_invalid_items INTO bot_run_id, total_tvs, total_hdds, total_computers, total_tvs_price, total_hdds_price, total_computers_price, total_null_tvs, total_null_hdds, total_null_computers,
+						tv_saleprice_avg, tv_saleprice_min, tv_saleprice_max, tv_price_avg, tv_price_min, tv_price_max, hdds_saleprice_avg, hdds_saleprice_min, hdds_saleprice_max, hdds_price_avg, hdds_price_min, 
+						hdds_price_max, computers_saleprice_avg, computers_saleprice_min, computers_saleprice_max, computers_price_avg, computers_price_min, computers_price_max;
+					IF NOT done THEN
+						SELECT `qst_total_tvs`, `qst_total_hdds`, `qst_total_computers`, `qst_price_tvs`, `qst_price_hdds`, `qst_price_computers`, 
+							`qst_null_tv_price`, `qst_null_hdd_price`, `qst_null_computer_price`, `qst_tv_saleprice_avg`, `qst_tv_saleprice_min`, `qst_tv_saleprice_max`, 
+							`qst_tv_price_avg`, `qst_tv_price_min`, `qst_tv_price_max`, `qst_hdds_saleprice_avg`, `qst_hdds_saleprice_min`, `qst_hdds_saleprice_max`, 
+							`qst_hdds_price_avg`, `qst_hdds_price_min`, `qst_hdds_price_max`, `qst_computers_saleprice_avg`, `qst_computers_saleprice_min`, `qst_computers_saleprice_max`, 
+							`qst_computers_price_avg`, `qst_computers_price_min`, `qst_computers_price_max`
+						INTO last_valid_total_tvs, last_valid_total_hdds, last_valid_total_computers, last_valid_total_tvs_price, last_valid_total_hdds_price, last_valid_total_computers_price, last_valid_total_null_tvs,
+							last_valid_total_null_hdds, last_valid_total_null_computers, last_valid_tv_saleprice_avg, last_valid_tv_saleprice_min, last_valid_tv_saleprice_max, 
+							last_valid_tv_price_avg, last_valid_tv_price_min, last_valid_tv_price_max, last_valid_hdds_saleprice_avg, last_valid_hdds_saleprice_min,
+							last_valid_hdds_saleprice_max, last_valid_hdds_price_avg, last_valid_hdds_price_min, last_valid_hdds_price_max, last_valid_computers_saleprice_avg,
+							last_valid_computers_saleprice_min, last_valid_computers_saleprice_max, last_valid_computers_price_avg, last_valid_computers_price_min, last_valid_computers_price_max
+						FROM qa_statistic_qst WHERE qst_btrns_id = last_valid_bot_run_id;
+
+						SET outputs = CONCAT(outputs, 'The bot runid : ', bot_run_id, '\n\r');
+						SET outputs = CONCAT(outputs, 
+						'Last: total-', last_valid_total_tvs, 
+							', total prices-', last_valid_total_tvs_price, 
+							', saleprice-', last_valid_tv_saleprice_avg, 
+							', min saleprice-', last_valid_tv_saleprice_min, 
+							', max saleprice-', last_valid_tv_saleprice_max, 
+							', price-', last_valid_tv_price_avg, 
+							', min price-', last_valid_tv_price_min, 
+							', max price-', last_valid_tv_price_max, 
+						'; This: total-', total_tvs, 
+							', total prices-', total_tvs_price, 
+							', saleprice-', tv_saleprice_avg, 
+							', min saleprice-', tv_saleprice_min, 
+							', max saleprice-', tv_saleprice_max, 
+							', price-', tv_price_avg, 
+							', min price-', tv_price_min, 
+							', max price-', tv_price_max);
+
+						IF 100 * ((last_valid_total_tvs - total_tvs) / last_valid_total_tvs) > influence_number THEN
+							SET is_valid = 0;
+							SET outputs = CONCAT(outputs, '. TV number decreased over ', influence_number, '%\n\r');
+						ELSE
+							SET outputs = CONCAT(outputs, '. TV number OK\n\r');
+						END IF;
+
+						IF 100 * ((last_valid_total_tvs_price - total_tvs_price) / last_valid_total_tvs_price) > influence_number THEN
+							SET is_valid = 0;
+							SET outputs = CONCAT(outputs, '. TV prices number decreased over ', influence_number, '%\n\r');
+						ELSE
+							SET outputs = CONCAT(outputs, '. TV prices number OK\n\r');
+						END IF;
+
+						SET outputs = CONCAT(outputs, 'Last: total-', last_valid_total_hdds, 
+							', total prices-', last_valid_total_hdds_price, 
+							', saleprice-', last_valid_hdds_saleprice_avg, 
+							', min saleprice-', last_valid_hdds_saleprice_min, 
+							', max saleprice-', last_valid_hdds_saleprice_max, 
+							', price-', last_valid_hdds_price_avg, 
+							', min price-', last_valid_hdds_price_min, 
+							', max price-', last_valid_hdds_price_max, 
+						'; This: total-', total_hdds, 
+							', total prices-', total_hdds_price, 
+							', saleprice-', hdds_saleprice_avg, 
+							', min saleprice-', hdds_saleprice_min, 
+							', max saleprice-', hdds_saleprice_max, 
+							', price-', hdds_price_avg, 
+							', min price-', hdds_price_min, 
+							', max price-', hdds_price_max);
+
+						IF 100 * ((last_valid_total_hdds - total_hdds)/last_valid_total_hdds) > influence_number THEN
+							SET is_valid = 0;
+							SET outputs = CONCAT(outputs, '. HDD number decreased over ', influence_number, '%\n\r');
+						ELSE
+							SET outputs = CONCAT(outputs, '. HDD number OK\n\r');
+						END IF;
+
+						IF 100 * ((last_valid_total_hdds_price - total_hdds_price) / last_valid_total_hdds_price) > influence_number THEN
+							SET is_valid = 0;
+							SET outputs = CONCAT(outputs, '. HDD prices number decreased over ', influence_number, '%\n\r');
+						ELSE
+							SET outputs = CONCAT(outputs, '. HDD prices number OK\n\r');
+						END IF;
+
+						SET outputs = CONCAT(outputs, '. Last: total-', last_valid_total_computers, 
+							', total prices-', last_valid_total_computers_price, 
+							', saleprice-', last_valid_computers_saleprice_avg, 
+							', min saleprice-', last_valid_computers_saleprice_min, 
+							', max saleprice-', last_valid_computers_saleprice_max, 
+							', price-', last_valid_computers_price_avg, 
+							', min price-', last_valid_computers_price_min, 
+							', max price-', last_valid_computers_price_max, 
+						'; This: total-', total_computers, 
+							', total prices-', total_computers_price, 
+							', saleprice-', computers_saleprice_avg, 
+							', min saleprice-', computers_saleprice_min, 
+							', max saleprice-', computers_saleprice_max, 
+							', price-', computers_price_avg, 
+							', min price-', computers_price_min, 
+							', max price-', computers_price_max);
+
+						IF 100 * ((last_valid_total_computers - total_computers)/last_valid_total_computers) > influence_number THEN
+							SET is_valid = 0;
+							SET outputs = CONCAT(outputs, '. Computer number decreased over ', influence_number, '%\n\r');
+						ELSE
+							SET outputs = CONCAT(outputs, '. Computer number OK\n\r');
+						END IF;
+
+						IF 100 * ((last_valid_total_computers_price - total_computers_price) / last_valid_total_computers_price) > influence_number THEN
+							SET is_valid = 0;
+							SET outputs = CONCAT(outputs, '. Computer prices number decreased over ', influence_number, '%\n\r');
+						ELSE
+							SET outputs = CONCAT(outputs, '. Computer prices number OK\n\r');
+						END IF;
+						
+						IF (total_null_tvs > 0) THEN
+							SET outputs = CONCAT(outputs, '. Null TV sale price\n\r');
+							SET is_valid = 0;
+						ELSE
+							SET outputs = CONCAT(outputs, '. No null TV sale prices\n\r');
+						END IF;
+						IF (total_null_hdds > 0) THEN
+							SET outputs = CONCAT(outputs, '. Null HDD sale price\n\r');
+							SET is_valid = 0;
+						ELSE
+							SET outputs = CONCAT(outputs, '. No null HDD sale prices\n\r');
+						END IF;
+						IF (total_null_computers > 0) THEN
+							SET outputs = CONCAT(outputs, '. Null Computer sale price\n\r');
+							SET is_valid = 0;
+						ELSE
+							SET outputs = CONCAT(outputs, '. No null Computer sale prices\n\r');
+						END IF;
+						
+						IF is_valid THEN
+							UPDATE qa_statistic_qst SET qst_is_valid = 1 WHERE qst_btrns_id = bot_run_id;
+							SET last_valid_bot_run_id = bot_run_id;
+						ELSE
+							UPDATE qa_statistic_qst SET qst_is_valid = -1 WHERE qst_btrns_id = bot_run_id;
+						END IF;
+					END IF;				
+				UNTIL done END REPEAT;
+			CLOSE c_invalid_items;
+		END;
+		END IF;
+	END IF;
+	SELECT outputs;
+END$$
+
+DROP PROCEDURE IF EXISTS `qa_compute_statistic`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE qa_compute_statistic()
+BEGIN
+	DECLARE total_tvs INT;
+	DECLARE total_hdds INT;
+	DECLARE total_computers INT;
+
+	DECLARE price_total_tvs INT;
+	DECLARE price_total_hdds INT;
+	DECLARE price_total_computers INT;
+
+	DECLARE null_tv_price INT;
+	DECLARE null_hdd_price INT;
+	DECLARE null_computer_price INT;
+
+	DECLARE last_found DATETIME;
+	DECLARE bot_run_id INT;
+
+	DECLARE done INT DEFAULT 0;
+
+
+	DECLARE c_bot_run_ids CURSOR FOR
+	SELECT btrns_id FROM bot_runs_btrns WHERE btrns_id > (SELECT IFNULL(MAX(qst_btrns_id), 0) FROM qa_statistic_qst);
+
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+	OPEN c_bot_run_ids;
+
+	REPEAT
+		FETCH c_bot_run_ids INTO bot_run_id;
+		IF NOT done THEN
+
+			IF bot_run_id > 0 THEN
+				SELECT btrns_rns_start INTO last_found FROM bot_runs_btrns WHERE btrns_id = bot_run_id;
+
+				SELECT COUNT(*) INTO total_tvs FROM BestBuy_TVs WHERE LastFound = last_found;
+				SELECT COUNT(*) INTO total_hdds FROM BestBuy_HDDs WHERE LastFound = last_found;
+				SELECT COUNT(*) INTO total_computers FROM BestBuy_Computers WHERE LastFound = last_found;
+
+				SELECT COUNT(*) INTO price_total_tvs FROM BestBuy_TV_Prices WHERE RunDate = last_found;
+				SELECT COUNT(*) INTO price_total_hdds FROM BestBuy_HDD_Prices WHERE RunDate = last_found;
+				SELECT COUNT(*) INTO price_total_computers FROM BestBuy_Computer_Prices WHERE RunDate = last_found;
+
+				SELECT COUNT(*) INTO null_tv_price FROM BestBuy_TV_Prices WHERE RunDate = last_found AND SalePrice IS NULL;
+				SELECT COUNT(*) INTO null_hdd_price FROM BestBuy_HDD_Prices WHERE RunDate = last_found AND SalePrice IS NULL;
+				SELECT COUNT(*) INTO null_computer_price FROM BestBuy_Computer_Prices WHERE RunDate = last_found AND SalePrice IS NULL;
+
+				INSERT INTO `bot_bestbuy`.`qa_statistic_qst` (
+						qst_btrns_id,
+						qst_is_valid,
+						qst_total_tvs,
+						qst_total_hdds,
+						qst_total_computers,
+						qst_price_tvs,
+						qst_price_hdds,
+						qst_price_computers,
+						qst_null_tv_price,
+						qst_null_hdd_price,
+						qst_null_computer_price)
+				VALUES (
+					bot_run_id,
+					0,
+					total_tvs,
+					total_hdds,
+					total_computers,
+					price_total_tvs,
+					price_total_hdds,
+					price_total_computers,
+					null_tv_price,
+					null_hdd_price,
+					null_computer_price);
+			END IF;
+		END IF;
+		UNTIL done END REPEAT;
+	CLOSE c_bot_run_ids;
+END$$
+
+DROP PROCEDURE IF EXISTS `save_computer`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE save_computer(category_id INT(4), brand varbinary(32),
+model varbinary(32), bsku bigint, title varbinary(1024), processor varbinary(64), memory varbinary(16),
+hardDisk varbinary(64), color varbinary(32), display varbinary(16), os varbinary(128), description varbinary(1024), saleprice decimal(10,2),
+price decimal(10,2), run_id bigint(20), rundate DATETIME, url varbinary(1024))
+BEGIN
+START TRANSACTION;
+IF NOT EXISTS (SELECT * FROM BestBuy_Computer_Prices WHERE `RunId` = run_id AND `Sku` = bsku) THEN
+  INSERT INTO `BestBuy_Computer_Prices`(`Sku`, `SalePrice`, `Price`, `RunDate`, `RunId`) VALUES(bsku, saleprice, price, rundate, run_id);
+END IF;
+
+INSERT INTO `BestBuy_Computers` (`CategoryId` ,`Brand` ,`Model` ,`Sku` ,`Title` ,`Processor` ,
+	`Memory` ,`HardDiskSize` ,`Color` ,`Display` ,`OS`,`Description`, `Url` ,`FirstFound` ,`LastFound` ,`FirstRun` ,`LastRun`)
+VALUES (category_id , brand, model, bsku , title , processor , memory , hardDisk , color, display, os, description , url, rundate , rundate , run_id , run_id)
+on duplicate key update `Brand` = brand, `Model` = model, `Title` = title ,`Processor` = processor,
+	`Memory` = memory,`HardDiskSize` = hardDisk,`Color` = color,`Display` = display,`OS` = os, `Description` = description, `Url` = url, `LastFound` = rundate, `LastRun` = run_id;
+COMMIT;
+END$$
+
+DROP PROCEDURE IF EXISTS `save_hdd`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE save_hdd(category_id INT(4), brand varbinary(32),
+model varbinary(32), bsku bigint, title varbinary(1024), capacity varbinary(16), type varbinary(64),
+saleprice decimal(10,2), price decimal(10,2), run_id bigint(20), rundate DATETIME, url varbinary(512))
+BEGIN
+START TRANSACTION;
+IF NOT EXISTS (SELECT * FROM BestBuy_HDD_Prices WHERE `RunId` = run_id AND `Sku` = BINARY bsku) THEN
+INSERT INTO `BestBuy_HDD_Prices` (`Sku`, `SalePrice`, `Price`, `RunDate`, `RunId`)VALUES(bsku, saleprice, price, rundate, run_id);
+END IF;
+
+INSERT INTO `BestBuy_HDDs` (`CategoryId` ,`Brand` ,`Model` ,`Sku` ,`Title` ,`Capacity` ,
+	`Type`, `Url` ,`FirstFound` ,`LastFound` ,`FirstRun` ,`LastRun`)
+VALUES (category_id , brand, model, bsku , title , capacity, type, url, rundate , rundate , run_id , run_id)
+on duplicate key update `Brand` = brand, `Model` = model, `Title` = title ,`Capacity` = capacity ,
+	`Type` = type, `Url` = url, `LastFound` = rundate, `LastRun` = run_id;
+COMMIT;
+END$$
+
+DROP PROCEDURE IF EXISTS `save_tv`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE save_tv(category_id INT(4), brand varbinary(32),
+model varbinary(32), bsku bigint, title varbinary(1024), resolution varbinary(16), refreshrate varbinary(16),
+connected bool, size varbinary(16), saleprice decimal(10,2), price decimal(10,2), run_id bigint(20), rundate DATETIME, url varbinary(512))
+BEGIN
+START TRANSACTION;
+IF NOT EXISTS (SELECT * FROM BestBuy_TV_Prices WHERE `RunId` = run_id AND `Sku` = bsku) THEN
+INSERT INTO `BestBuy_TV_Prices` (`Sku`, `SalePrice`, `Price`, `RunDate`, `RunId`)VALUES(bsku, saleprice, price, rundate, run_id);
+END IF;
+
+INSERT INTO `BestBuy_TVs` (`CategoryId` ,`Brand` ,`Model` ,`Sku` ,`Title` ,`Resolution` ,
+	`RefreshRate` ,`Connected` ,`Size` , `Url`, `FirstFound` ,`LastFound` ,`FirstRun` ,`LastRun`)
+VALUES (category_id , brand, model, bsku , title , resolution , refreshrate , connected , size , url, rundate , rundate , run_id , run_id)
+on duplicate key update `Brand` = brand, `Model` = model, `Title` = title ,`Resolution` = resolution ,
+	`RefreshRate` = refreshrate,`Connected` = connected,`Size` = size, `Url` = url, `LastFound` = rundate, `LastRun` = run_id;
+COMMIT;
+END$$
+
+DROP PROCEDURE IF EXISTS `update_checkeditem`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE update_checkeditem(bid int, jid int, tid int, urls varchar(512))
+BEGIN
+    UPDATE `BestBuy_CheckList` SET status = 1 WHERE JobId = jid AND TaskId = tid AND url = BINARY urls;
+END$$
+
+DROP PROCEDURE IF EXISTS `update_checkingitem`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE update_checkingitem(bid int, jid int, tid int, urls varchar(512))
+BEGIN
+    UPDATE `BestBuy_CheckList` SET status = 0 WHERE JobId = jid AND TaskId = tid AND url = BINARY urls;
+END$$
+
+DROP PROCEDURE IF EXISTS `update_checklist_status`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE update_checklist_status(id int, status int)
+BEGIN
+	UPDATE BestBuy_CheckList SET `Status` = status WHERE categoryid = id;
+END$$
+
+DROP PROCEDURE IF EXISTS `update_decheckingitems`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE update_decheckingitems(bid int, jid int, tid int)
+BEGIN
+    UPDATE `BestBuy_CheckList` SET status = -1 WHERE JobId = jid AND TaskId = tid AND Status = 0;
+END$$
+
+DROP PROCEDURE IF EXISTS `update_qa_statistic`$$
+CREATE DEFINER=master_bestbuy@localhost PROCEDURE update_qa_statistic(brid int, valid tinyint(1))
+BEGIN
+    UPDATE `qa_statistic_qst` SET qst_is_valid = valid WHERE qst_btrns_id = brid;
+END$$
+
+DELIMITER ;

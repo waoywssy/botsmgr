@@ -1,0 +1,3 @@
+# Gets number of jobs on the job list
+
+<tr [^<>]{1,9999}? class [^<>']+ 'SingleLineView(?:Even|Odd)Row'

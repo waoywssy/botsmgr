@@ -1,0 +1,177 @@
+SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8 */;
+
+
+DROP TABLE IF EXISTS BestBuy_Categories;
+CREATE TABLE IF NOT EXISTS BestBuy_Categories (
+  Id int(4) NOT NULL AUTO_INCREMENT,
+  CategoryName varchar(64) COLLATE utf8_unicode_ci NOT NULL COMMENT 'CategoryName',
+  Url varchar(512) COLLATE utf8_unicode_ci NOT NULL COMMENT 'The URL of the category, usually the products link.',
+  Enabled int(11) NOT NULL COMMENT 'If this category needs to be crawled',
+  ClassId int(11) NOT NULL COMMENT 'Id of the class',
+  PRIMARY KEY (Id)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to hold all the categories data from bestbuy.com which';
+
+DROP TABLE IF EXISTS BestBuy_Category_Classes;
+CREATE TABLE IF NOT EXISTS BestBuy_Category_Classes (
+  ClassId int(4) NOT NULL AUTO_INCREMENT COMMENT 'Id of the class',
+  ClassName varchar(64) CHARACTER SET latin1 NOT NULL COMMENT 'Name of the class, like ''TV'', ''HDD''...',
+  PRIMARY KEY (ClassId)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+DROP TABLE IF EXISTS BestBuy_CheckList;
+CREATE TABLE IF NOT EXISTS BestBuy_CheckList (
+  JobId int(4) NOT NULL COMMENT 'Id of the bot',
+  TaskId int(4) NOT NULL COMMENT 'Id of the task of the job of the bot. -1 means no task',
+  Url varchar(512) COLLATE utf8_unicode_ci NOT NULL COMMENT 'Url of the checklist',
+  CategoryId int(4) NOT NULL COMMENT 'CategoryId of the checklist',
+  ClassId int(4) NOT NULL DEFAULT '0' COMMENT 'Class id of the cateogry',
+  `Status` int(4) NOT NULL COMMENT 'Id related to the URL, e.g. product Id, category Id'
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to hold all the checklist';
+
+DROP TABLE IF EXISTS BestBuy_Computers;
+CREATE TABLE IF NOT EXISTS BestBuy_Computers (
+  CategoryId int(11) NOT NULL,
+  Brand varchar(32) COLLATE utf8_unicode_ci DEFAULT NULL,
+  Model varchar(32) COLLATE utf8_unicode_ci NOT NULL,
+  Sku bigint(20) NOT NULL,
+  Title varchar(1024) COLLATE utf8_unicode_ci NOT NULL,
+  Processor varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Memory` varchar(16) COLLATE utf8_unicode_ci DEFAULT NULL,
+  HardDiskSize varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,
+  Color varchar(32) COLLATE utf8_unicode_ci DEFAULT NULL,
+  Display varchar(16) COLLATE utf8_unicode_ci DEFAULT NULL,
+  OS varchar(128) COLLATE utf8_unicode_ci DEFAULT NULL,
+  Description varchar(1024) COLLATE utf8_unicode_ci DEFAULT NULL,
+  Url varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
+  FirstFound datetime NOT NULL,
+  LastFound datetime NOT NULL,
+  FirstRun bigint(20) NOT NULL,
+  LastRun bigint(20) NOT NULL,
+  PRIMARY KEY (Sku)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to hold all the computers''  data from bestbuy.com';
+
+DROP TABLE IF EXISTS BestBuy_Computer_Prices;
+CREATE TABLE IF NOT EXISTS BestBuy_Computer_Prices (
+  Sku bigint(20) NOT NULL,
+  SalePrice decimal(10,2) DEFAULT NULL,
+  Price decimal(10,2) DEFAULT NULL,
+  RunDate datetime NOT NULL,
+  RunId bigint(20) NOT NULL,
+  KEY RunId (RunId),
+  KEY RunDate (RunDate),
+  KEY Sku (Sku)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to hold all the computers'' prices data from bestbuy.co';
+
+DROP TABLE IF EXISTS BestBuy_HDDs;
+CREATE TABLE IF NOT EXISTS BestBuy_HDDs (
+  CategoryId int(11) NOT NULL,
+  Brand varchar(32) COLLATE utf8_unicode_ci NOT NULL,
+  Model varchar(32) COLLATE utf8_unicode_ci NOT NULL,
+  Sku bigint(20) NOT NULL,
+  Title varchar(1024) COLLATE utf8_unicode_ci NOT NULL,
+  Capacity varchar(16) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Type` varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,
+  Url varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
+  FirstFound datetime NOT NULL,
+  LastFound datetime NOT NULL,
+  FirstRun bigint(20) NOT NULL,
+  LastRun bigint(20) NOT NULL,
+  PRIMARY KEY (Sku)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to hold all the HDDs'' history data from bestbuy.com';
+
+DROP TABLE IF EXISTS BestBuy_HDD_Prices;
+CREATE TABLE IF NOT EXISTS BestBuy_HDD_Prices (
+  Sku bigint(20) NOT NULL,
+  SalePrice decimal(10,2) DEFAULT NULL,
+  Price decimal(10,2) DEFAULT NULL,
+  RunDate datetime NOT NULL,
+  RunId bigint(20) NOT NULL,
+  KEY Sku (Sku),
+  KEY RunDate (RunDate),
+  KEY RunId (RunId)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to hold all the HDDs'' history prices data from bestbuy';
+
+DROP TABLE IF EXISTS BestBuy_TVs;
+CREATE TABLE IF NOT EXISTS BestBuy_TVs (
+  CategoryId int(11) NOT NULL,
+  Brand varchar(32) COLLATE utf8_unicode_ci NOT NULL,
+  Model varchar(32) COLLATE utf8_unicode_ci NOT NULL,
+  Sku bigint(20) NOT NULL,
+  Title varchar(1024) COLLATE utf8_unicode_ci NOT NULL,
+  Resolution varchar(16) COLLATE utf8_unicode_ci NOT NULL,
+  RefreshRate varchar(16) COLLATE utf8_unicode_ci NOT NULL,
+  Connected tinyint(1) NOT NULL,
+  Size varchar(16) COLLATE utf8_unicode_ci NOT NULL,
+  Url varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
+  FirstFound datetime NOT NULL,
+  LastFound datetime NOT NULL,
+  FirstRun bigint(20) NOT NULL,
+  LastRun bigint(20) NOT NULL,
+  PRIMARY KEY (Sku)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to hold all the TVs history data from bestbuy.com';
+
+DROP TABLE IF EXISTS BestBuy_TV_Prices;
+CREATE TABLE IF NOT EXISTS BestBuy_TV_Prices (
+  Sku bigint(20) NOT NULL,
+  SalePrice decimal(10,2) DEFAULT NULL,
+  Price decimal(10,2) DEFAULT NULL,
+  RunDate datetime NOT NULL,
+  RunId bigint(20) NOT NULL,
+  KEY Sku (Sku),
+  KEY RunDate (RunDate),
+  KEY RunId (RunId)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to hold all the TVs'' history prices data from bestbuy.';
+
+DROP TABLE IF EXISTS bot_runs_btrns;
+CREATE TABLE IF NOT EXISTS bot_runs_btrns (
+  btrns_id int(4) NOT NULL AUTO_INCREMENT COMMENT 'Id of the run in the bot database',
+  btrns_bts_id int(4) NOT NULL COMMENT 'Id of the bot',
+  btrns_jbs_id int(4) NOT NULL COMMENT 'Id of the job of the bot',
+  btrns_tsk_id int(4) NOT NULL COMMENT 'Id of the task of the job of the bot. -1 means no task',
+  btrns_rns_id int(4) NOT NULL COMMENT 'Id of the run of the task of the job of the bot.',
+  btrns_rns_start datetime NOT NULL COMMENT 'Run date and time',
+  PRIMARY KEY (btrns_id)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Bot runs table';
+
+DROP TABLE IF EXISTS qa_statistic_qst;
+CREATE TABLE IF NOT EXISTS qa_statistic_qst (
+  qst_btrns_id int(4) NOT NULL COMMENT 'Id of the run in the bot database',
+  qst_is_valid tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Whether qa statistic is valid by comparing to the previous row.  It means whether data of the run is valid',
+  qst_total_tvs int(4) NOT NULL DEFAULT '0' COMMENT 'Total number of the tvs',
+  qst_total_hdds int(4) NOT NULL DEFAULT '0' COMMENT 'Total number of the hdds',
+  qst_total_computers int(4) NOT NULL DEFAULT '0' COMMENT 'Total number of the computers',
+  qst_price_tvs int(4) NOT NULL DEFAULT '0' COMMENT 'Total number of the price items of tvs',
+  qst_price_hdds int(4) NOT NULL DEFAULT '0' COMMENT 'Total number of the price items of hdds',
+  qst_price_computers int(4) NOT NULL DEFAULT '0' COMMENT 'Total number of the price items of computers',
+  qst_null_tv_price int(4) NOT NULL DEFAULT '0' COMMENT 'Number of null sale price of tvs',
+  qst_null_hdd_price int(4) NOT NULL DEFAULT '0' COMMENT 'Number of null sale price of hdds',
+  qst_null_computer_price int(4) NOT NULL DEFAULT '0' COMMENT 'Number of null sale price of computers',
+  PRIMARY KEY (qst_btrns_id)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='QA statistic table';
+
+DROP TABLE IF EXISTS web_statistic_wbs;
+CREATE TABLE IF NOT EXISTS web_statistic_wbs (
+  wbs_btrns_id int(4) NOT NULL COMMENT 'Id of the run in the bot database',
+  wbs_is_resume tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Whether the run is resumed',
+  wbs_start datetime NOT NULL COMMENT 'Start time of web crawling',
+  wbs_end datetime NOT NULL COMMENT 'End time of web crawling',
+  wbs_duration decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT 'Duration of web crawling in hours',
+  wbs_actual_duration decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT 'Actual web traffic time in hours',
+  wbs_page_hits_total int(8) NOT NULL DEFAULT '0' COMMENT 'Total page hits on the web site',
+  wbs_kb_downloaded_total int(8) NOT NULL DEFAULT '0' COMMENT 'Total kilobytes downloaded from the web site, including headers and contents',
+  wbs_kb_uploaded_total int(8) NOT NULL DEFAULT '0' COMMENT 'Total kilobytes uploaded to the web site, including headers and contents',
+  wbs_b_request_header_total int(8) NOT NULL DEFAULT '0' COMMENT 'Total bytes of request headers',
+  wbs_b_request_content_total int(8) NOT NULL DEFAULT '0' COMMENT 'Total bytes of request contents',
+  wbs_b_response_header_total int(8) NOT NULL DEFAULT '0' COMMENT 'Total bytes of response headers',
+  wbs_b_response_content_total int(8) NOT NULL DEFAULT '0' COMMENT 'Total bytes of response contents',
+  wbs_max_page_hits_per_hour int(4) NOT NULL DEFAULT '1' COMMENT 'Maximum page hits per hour allowed to the web site',
+  wbs_max_kb_per_hour int(4) NOT NULL DEFAULT '1' COMMENT 'Maximum kilobytes downloaded per hour allowed from the web site',
+  wbs_threads int(4) NOT NULL COMMENT 'Number of web crawling threads used',
+  PRIMARY KEY (wbs_btrns_id,wbs_start)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Web statistic table';
+

@@ -1,0 +1,13 @@
+; $Id: reports.info,v 1.0 2010/09/04 05:50:55 dries Exp $
+name = Bots Management
+description = Allows users to view bots and start a job manually
+package = Boryi
+version = VERSION
+core = 6.x
+dependencies[] = jquery_ui
+
+; Information added by drupal.org packaging script on 2010-11-22
+version = "1.0"
+project = "Boryi"
+datestamp = "1281559292"
+

@@ -1,0 +1,13 @@
+-- mysql -u root -p bot_bestbuy
+TRUNCATE TABLE BestBuy_Categories;
+TRUNCATE TABLE BestBuy_Category_Classes;
+TRUNCATE TABLE BestBuy_CheckList;
+TRUNCATE TABLE BestBuy_Computers;
+TRUNCATE TABLE BestBuy_Computer_Prices;
+TRUNCATE TABLE BestBuy_HDDs;
+TRUNCATE TABLE BestBuy_HDD_Prices;
+TRUNCATE TABLE BestBuy_TVs;
+TRUNCATE TABLE BestBuy_TV_Prices;
+TRUNCATE TABLE bot_runs_btrns;
+TRUNCATE TABLE qa_statistic_qst;
+TRUNCATE TABLE web_statistic_wbs;

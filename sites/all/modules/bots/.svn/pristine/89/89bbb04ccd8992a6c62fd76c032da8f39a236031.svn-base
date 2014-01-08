@@ -1,0 +1,57 @@
+package com.boryi.bots.bestbuy;
+
+import com.boryi.bots.base.*;
+
+/**
+ * The BestBuy Logger entity
+ *
+ * <p><strong>Copyright 2010 - 2018 Boryi Network Information Inc.</strong></p>
+ *
+ * @author Yang Song
+ * @version 1.0
+ * @since December 2010
+ */
+public class Logger {
+
+    public static void info(String subject, String detail)
+    {
+        logEvent(BotEventSeverity.INFO, subject, detail);
+    }
+
+    public static void warn(String subject, String detail)
+    {
+        logEvent(BotEventSeverity.WARNING, subject, detail);
+    }
+
+    public static void error(String subject, String detail)
+    {
+        logEvent(BotEventSeverity.ERROR, subject, detail);
+    }
+
+    public static void fatal(String subject, String detail)
+    {
+        logEvent(BotEventSeverity.FATAL, subject, detail);
+    }
+
+
+    /**
+     * Log event by the given BotEventSeverity instance, event subject and event detail
+     * 
+     * @param severity  BotEventSeverity
+     * @param subject   The subject string
+     * @param detail    The detail string
+     */
+    private static void logEvent(BotEventSeverity severity, String subject, String detail)
+    {
+        try
+        {
+            BotDao.getInstance().saveEvent(
+                new BotEventEntity(
+                    severity, subject, detail, System.currentTimeMillis()));
+        }
+        catch(Exception ex)
+        {
+            BotBase.logger.warn(subject + ";" + detail + ";" + ex.toString());
+        }
+    }
+}

@@ -1,0 +1,7 @@
+-- mysql -u root -p bot_bestbuy
+
+CREATE USER 'master_bestbuy'@'localhost' IDENTIFIED BY 'p@ssw0rd';
+CREATE USER 'user_bestbuy'@'localhost' IDENTIFIED BY 'pass#word1';
+
+GRANT SELECT, INSERT, UPDATE, DELETE, EXECUTE ON bot_bestbuy.* TO 'master_bestbuy'@'localhost' IDENTIFIED BY 'p@ssw0rd';
+GRANT SELECT, EXECUTE ON bot_bestbuy.* TO 'user_bestbuy'@'localhost' IDENTIFIED BY 'pass#word1';
