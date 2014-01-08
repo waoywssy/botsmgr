@@ -1,5 +1,0 @@
-<?php
-define('SNOGYANG', getcwd());
-
-echo 'Hello ' . SONGYANG;
-?>
