@@ -1,1 +1,0 @@
-mysqladmin -u root -p create bot_local

@@ -1,1 +1,0 @@
-mysqladmin -u root -p drop bot_central
