@@ -1,0 +1,52 @@
+<?php
+/*
+  The schema function function bots_schema(){} should be placed in file: bots.install,
+  which has not been created here 
+*/
+/**
+ * Implements hook_install()
+ */
+function bots_install(){
+	// create any roles we will be using
+	$bot_user_permissions = array(
+		'view basic bot info',
+	);
+	$bot_manager_permissions = array(
+		'view basic bot info',
+		'edit bot info',
+	);
+	
+	_add_role('bot_user');
+	_add_role('bot_manager', 1);
+	
+	_add_permissions('bot_user', $bot_user_permissions);
+	_add_permissions('bot_manager', $bot_manager_permissions);
+}
+/**
+ * Implements hook_uninstall()
+ */
+function bots_uninstall(){
+	// remove any roles we created
+	user_role_delete('bot_user');
+	user_role_delete('bot_manager');
+}
+/**
+ *	Adds a new role
+ *      @machine_name - the name of the role to be added
+ *      @weight - the optional display weight for role
+ */
+function _add_role($machine_name, $weight = 0){
+	$role = new stdClass();
+	$role->name = $machine_name;
+	$role->weight = $weight;
+	user_role_save($role);
+}
+/**
+ *	Adds permissions to a role
+ *	@role_name - the name of the role to receive an update
+ *	@permissions - the array of permissions to add
+ */
+function _add_permissions($role_name, $permissions){
+	$role = user_role_load_by_name($role_name);
+	user_role_grant_permissions($role->rid, $permissions);
+}
