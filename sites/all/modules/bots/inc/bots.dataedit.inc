@@ -492,8 +492,9 @@ function edit_job_data(){
 					}
 				} 
 
+				$base = variable_get('bots_data_path', '/var/www/data/');
 				// crate the data directory
-				$dataPath = "/var/www/data/$bts_id/$jbs_id/";
+				$dataPath = $base . "$bts_id/$jbs_id/";
 				if (!file_exists($dataPath)){
 					$old_umask = umask(0); 
 					mkdir($dataPath, 0755, true);

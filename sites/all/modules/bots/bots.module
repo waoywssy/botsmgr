@@ -4,13 +4,13 @@ function bots_menu() {
     $items['bots_view'] = array(
         'page callback' => 'menufun_bots_view',
 		'access callback' => 'user_access',
-		'access arguments' => array('View bots information'),
+		'access arguments' => array('view basic bot info'),
         'type' => MENU_CALLBACK,
     );
     $items['bots_data'] = array(
         'page callback' => 'menufun_bots_data',
 		'access callback' => 'user_access',
-		'access arguments' => array('Access to bots data'),
+		'access arguments' => array('view basic bot info'),
         'type' => MENU_CALLBACK,
     );
     $items['bots_data_edit'] = array(
@@ -19,57 +19,66 @@ function bots_menu() {
 		//'access arguments' => array('Insert/Update bots data'),
         'type' => MENU_CALLBACK,
     );
-    $items['bots_run'] = array(
-        'page callback' => 'menufun_bots_run',
-		'access callback' => 'user_access',
-		'access arguments' => array('Manually run bots'),
-        'type' => MENU_CALLBACK,
-    );
-    $items['bots_dump'] = array(
-        'page callback' => 'menufun_bots_dump',
-		'access callback' => 'user_access',
-		'access arguments' => array('Dump data of bots'),
-        'type' => MENU_CALLBACK,
-    );
-
+	$items['admin/config/bots'] = array(
+		'title' => 'Boryi',
+		'description' => 'bots settings',
+		'position' => 'right',
+		'weight' => -5,
+		'page callback' => 'system_admin_menu_block_page',
+		'access arguments' => array('administer site configuration'),
+		'file' => 'system.admin.inc',
+		'file path' => drupal_get_path('module', 'system'),
+	);
+	$items['admin/config/bots/settings'] = array(
+		'title' => 'Bots settings',
+		'description' => 'Change bots settings.',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('bots_admin_settings'),
+		'access arguments' => array('administer site configuration'),
+		'type' => MENU_NORMAL_ITEM,
+		'file' => 'bots.admin.inc',
+	);
     return $items;
 }
 
-function all_access(){
-	return true;
-}
-
-function menufun_bots_view()
-{
+function menufun_bots_view(){
 	module_load_include('inc', 'bots', 'inc/bots.view');
 	return get_view();
 	//exit(0);
 }
 
-function menufun_bots_data()
-{
+function menufun_bots_data(){
 	module_load_include('inc', 'bots', 'inc/bots.data');
 	echo get_data();
 	exit(0);
 }
 
-function menufun_bots_data_edit()
-{
+function menufun_bots_data_edit(){
 	module_load_include('inc', 'bots', 'inc/bots.dataedit');
 	echo get_data_edit();
 	exit(0);
 }
 
-function menufun_bots_dump()
-{
+function menufun_bots_dump(){
 	module_load_include('inc', 'bots', 'inc/bots.dump');
 	//echo get_dump();
 	echo '';
 	exit(0);
 }
 
-/*
-  The schema function function bots_schema(){} should be placed in file: bots.install,
-  which has not been created here 
-*/
-
+/**
+ * Implements hook_permission().
+ */
+function bots_permission() {
+  
+  $permissions['view basic bot info'] = array(
+    'title' => t('View basic bot info'),
+    'description' => t('Allow users to view basic bot info'),
+  );
+  $permissions['edit bot info'] = array(
+    'title' => t('Edit bot info'),
+    'description' => t('Allow users to add/edit/delete bot info'),
+  );
+  
+  return $permissions;
+}

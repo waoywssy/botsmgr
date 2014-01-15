@@ -4,7 +4,7 @@ description = Allows users to view bots and start a job manually
 package = Boryi
 core = 7.x
 files[] = bots.module
-
+; configure=admin/config/content/bots/settings
 
 ; dependencies[] = jquery_update
 ; Information added by drupal.org packaging script on 2010-11-22
