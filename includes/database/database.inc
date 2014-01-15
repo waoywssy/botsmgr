@@ -28,8 +28,9 @@
  * Most Drupal database SELECT queries are performed by a call to db_query() or
  * db_query_range(). Module authors should also consider using the PagerDefault
  * Extender for queries that return results that need to be presented on
- * multiple pages, and the Tablesort Extender for generating appropriate queries
- * for sortable tables.
+ * multiple pages (see https://drupal.org/node/508796), and the TableSort
+ * Extender for generating appropriate queries for sortable tables
+ * (see https://drupal.org/node/1848372).
  *
  * For example, one might wish to return a list of the most recent 10 nodes
  * authored by a given user. Instead of directly issuing the SQL query
@@ -179,7 +180,7 @@
  * concrete implementation of it to support special handling required by that
  * database.
  *
- * @see http://php.net/manual/en/book.pdo.php
+ * @see http://php.net/manual/book.pdo.php
  */
 abstract class DatabaseConnection extends PDO {
 
@@ -1986,7 +1987,7 @@ interface DatabaseStatementInterface extends Traversable {
   /**
    * Sets the default fetch mode for this statement.
    *
-   * See http://php.net/manual/en/pdo.constants.php for the definition of the
+   * See http://php.net/manual/pdo.constants.php for the definition of the
    * constants used.
    *
    * @param $mode
@@ -2005,7 +2006,7 @@ interface DatabaseStatementInterface extends Traversable {
   /**
    * Fetches the next row from a result set.
    *
-   * See http://php.net/manual/en/pdo.constants.php for the definition of the
+   * See http://php.net/manual/pdo.constants.php for the definition of the
    * constants used.
    *
    * @param $mode
