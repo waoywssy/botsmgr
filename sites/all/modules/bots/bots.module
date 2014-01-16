@@ -44,7 +44,6 @@ function bots_menu() {
 function menufun_bots_view(){
 	module_load_include('inc', 'bots', 'inc/bots.view');
 	return get_view();
-	//exit(0);
 }
 
 function menufun_bots_data(){

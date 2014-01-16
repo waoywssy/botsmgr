@@ -106,7 +106,8 @@ function DumpBot(botId, jobId){
 
 				$("#dgdata").button("enable");
 				$('#dialog').dialog().show('fast');
-			}
+			},
+			error: load_err,
 		});
 	});
 
@@ -118,12 +119,36 @@ function DumpBot(botId, jobId){
 			success: function(response){
 				alert(response);
 				$("#loading").hide();
-			}
+			},
+			error: load_err, 
 		});
 		$("#dgexport").button("enable");
 	});
 
 	$("#ui-dialog-title-dialog").html('Dump job data - JobId: ' + jobId);
+}
+
+// this method is obsolete for now 
+function getServerList(selectServer){ 
+	$.post("bots_data_edit?&type=server", { oper:'list',},
+    	function(json){
+    		if (json!=null && json != undefined){
+    			var options = '';
+    			for (var i = json.length - 1; i >= 0; i--) {
+    				var s = json[i];
+    				options += '<option value="' + s.id;
+
+    				if (selectServer != null && selectServer != undefined 
+    					&& selectServer == s.server){
+    					 options += '" selected="selected">';
+    				} else {
+    					 options += '">';
+    				}
+    				options += s.server + '</option>';
+    			}
+    			$('#tsk_srv_id').empty().append(options);
+			}
+    	});
 }
 
 
@@ -145,7 +170,6 @@ function check_name(value, colName, length){
 	return [false, 'Incorrect Name'];	
 }
 
-
 function on_name_change(e){
 	if (e.keyCode == 32) { 
 		$(e.target).val(
@@ -159,6 +183,14 @@ function on_name_change(e){
 function on_id_change(e){
 	$("#bts_path").val(botsPath + $.trim($(e.target).val()) 
 		+ "-" + $.trim($('#bts_name').val()) + "/");
+}
+
+function load_err(jqXHR, textStatus, errorThrown){
+    alert('Network problem!\n\n' + 
+    		'HTTP status code: ' + jqXHR.status + 
+          	'\ntextStatus: ' + textStatus + 
+          	'\nerrorThrown: ' + errorThrown);
+        // alert('HTTP message body (jqXHR.responseText): ' + '\n' + jqXHR.responseText);
 }
 
 jQuery().ready(function($){
@@ -249,6 +281,7 @@ jQuery().ready(function($){
 		sortname: 'bts_id',
 		sortorder: "asc", 
 		caption:"View Bots",
+		loadError: load_err,
 		loadComplete: function() {
 			$("tr.jqgrow", this).contextMenu('menuBot', {
 				menuStyle:{'width':'120px'}, // custom the pop-up menu's width
@@ -299,6 +332,7 @@ jQuery().ready(function($){
 				jobsArray[rowData.jbs_id] = rowData.jbs_name;
 			}
 		},
+		loadError: load_err,
 		loadComplete: function(){ 
 			$("tr.jqgrow", this).contextMenu('menuJob', {
 				menuStyle:{'width':'120px'}, // custom the pop-up menu's width
@@ -391,6 +425,7 @@ jQuery().ready(function($){
 		ondblClickRow: function(id){
 			ReloadByTask(id);
 		},
+		loadError: load_err,
 		loadComplete: function(){
 			$("tr.jqgrow", this).contextMenu('menuTask', {
 				menuStyle:{'width':'120px'}, // custom the pop-up menu's width
@@ -413,30 +448,6 @@ jQuery().ready(function($){
 		caption:"View Tasks"}
 	);
 	tasksView.setGridParam({ datatype: 'json' }); 
-	
-	
-	// this method is obsolete for now 
-	function getServerList(selectServer){ 
-		$.post("bots_data_edit?&type=server", { oper:'list',},
-	    	function(json){
-	    		if (json!=null && json != undefined){
-	    			var options = '';
-	    			for (var i = json.length - 1; i >= 0; i--) {
-	    				var s = json[i];
-	    				options += '<option value="' + s.id;
-
-	    				if (selectServer != null && selectServer != undefined 
-	    					&& selectServer == s.server){
-	    					 options += '" selected="selected">';
-	    				} else {
-	    					 options += '">';
-	    				}
-	    				options += s.server + '</option>';
-	    			}
-	    			$('#tsk_srv_id').empty().append(options);
-				}
-	    	});
-	}
 
 	// Runs list
 	var runsView = $("#runsList").jqGrid({
@@ -469,6 +480,7 @@ jQuery().ready(function($){
 			ReloadByRun(id);
 			$("#tabsContainer").tabs("select", 4);
 		},
+		loadError: load_err,
 		viewrecords: true,
 		sortname: 'rns_id',
 		sortorder: "desc",
@@ -491,6 +503,7 @@ jQuery().ready(function($){
 		rowList:[10,20,30], 
 		emptyrecords: "No events for the run",
 		pager: $('#eventsPager'), 
+		loadError: load_err,
 		viewrecords: true, 
 		sortname: 'vnt_datetime', 
 		sortorder: "desc", 
@@ -541,25 +554,30 @@ jQuery().ready(function($){
 				}
 			});
 		},
+		loadError: load_err,
 		} 
 	);
 
 	function menuEnable(tid, type, target, extra){
 		if (extra==null || extra==undefined){ extra=''; }
 
-		$.post( "bots_data_edit?&type=" + type + extra, { oper:'enable', id:tid}, 
-			function( data ) {
+		$.ajax({
+			url: "bots_data_edit?&type=" + type + extra + "&oper=enable&id=" + tid, 
+			success: function( data ) {
 				if (target != null && target != undefined){
 					$('#' + target).trigger('reloadGrid');
 				}
-			});
+			},
+			error: load_err});
 	}
 
 	function menuClear(tid, type, clear, extra){
 		if (extra==null || extra==undefined){ extra=''; }
-		$.post( "bots_data_edit?&type=" + type + extra, { oper:clear, id:tid},
-			function( data ) {
+		$.ajax({
+			url: "bots_data_edit?&type=" + type + extra + "&oper=clear&id=" + tid, 
+			success: function( data ) {
 				alert(data);
-			});
+			},
+			error: load_err});
 	}
 }) 
