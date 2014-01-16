@@ -59,13 +59,6 @@ function menufun_bots_data_edit(){
 	exit(0);
 }
 
-function menufun_bots_dump(){
-	module_load_include('inc', 'bots', 'inc/bots.dump');
-	//echo get_dump();
-	echo '';
-	exit(0);
-}
-
 /**
  * Implements hook_permission().
  */
